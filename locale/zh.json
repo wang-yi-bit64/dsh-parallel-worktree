@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "并行 Worktree（多分支并行开发）",
+    "description": "为每个任务开一个独立 git worktree 并行开发：三个 worktree_* 工具负责创建、列出与查看状态，/worktree 命令负责同步、合并与清理；检出默认放在仓库外，注册表按仓库维护。"
+  }
+}

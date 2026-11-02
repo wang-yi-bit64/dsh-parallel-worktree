@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Parallel Worktrees",
+    "description": "Give each task its own isolated git worktree: worktree_create / worktree_list / worktree_status create, list and inspect checkouts, while /worktree syncs, merges and cleans up; checkouts live outside the repository by default and are tracked in a per-repo registry."
+  }
+}

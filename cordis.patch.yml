@@ -1,0 +1,4 @@
+# dsh-parallel-worktree：挂载 parallel-worktree 插件
+- insert:
+    - id: parallel-worktree
+      name: dsh-parallel-worktree

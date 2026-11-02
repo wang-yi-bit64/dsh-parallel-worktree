@@ -1,0 +1,73 @@
+{
+  "name": "dsh-parallel-worktree",
+  "version": "0.2.0",
+  "description": "DSH 并行开发 worktree 编排插件：创建/列出/状态/同步/合并/清理，注册表 + 环境引导 + /worktree 命令。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./lib/*": "./lib/*",
+    "./package.json": "./package.json",
+    "./client": "./client/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "client",
+    "README.md",
+    "README.en.md",
+    "locale",
+    "icon.svg",
+    "install.mjs",
+    "uninstall.mjs",
+    "LICENSE"
+  ],
+  "icon": "./icon.svg",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "worktree",
+    "git",
+    "agent-team"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-layout"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5 || ~4.0.6-alpha.1",
+    "@deepseek-ai/dsh-tools": "^0.2.1-rc.4 || ^0.2.2-alpha.2"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "test": "node --test test/manager.test.mjs test/schema.test.mjs test/tools.test.mjs test/cwd.test.mjs test/commands-json.test.mjs",
+    "install:plugin": "node install.mjs",
+    "uninstall:plugin": "node uninstall.mjs"
+  }
+}
