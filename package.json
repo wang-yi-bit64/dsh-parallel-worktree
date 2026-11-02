@@ -2,6 +2,14 @@
   "name": "dsh-parallel-worktree",
   "version": "0.2.0",
   "description": "DSH 并行开发 worktree 编排插件：创建/列出/状态/同步/合并/清理，注册表 + 环境引导 + /worktree 命令。",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wang-yi-bit64/dsh-parallel-worktree.git"
+  },
+  "homepage": "https://github.com/wang-yi-bit64/dsh-parallel-worktree#readme",
+  "bugs": {
+    "url": "https://github.com/wang-yi-bit64/dsh-parallel-worktree/issues"
+  },
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -69,5 +77,9 @@
     "test": "node --test test/manager.test.mjs test/schema.test.mjs test/tools.test.mjs test/cwd.test.mjs test/commands-json.test.mjs",
     "install:plugin": "node install.mjs",
     "uninstall:plugin": "node uninstall.mjs"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   }
 }

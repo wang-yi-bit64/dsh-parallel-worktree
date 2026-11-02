@@ -1,5 +1,7 @@
 # dsh-parallel-worktree
 
+[![CI](https://github.com/wang-yi-bit64/dsh-parallel-worktree/actions/workflows/ci.yml/badge.svg)](https://github.com/wang-yi-bit64/dsh-parallel-worktree/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/dsh-parallel-worktree.svg)](https://www.npmjs.com/package/dsh-parallel-worktree)
+
 Parallel development for a single repository on DSH: open one isolated git worktree per task so several agents or terminals can work at once without stepping on each other.
 
 It is the engineering layer on top of DSH's built-in `create_worktree`: the built-in tool creates one checkout and stops there, while this plugin adds a **registry, layout conventions, environment bootstrapping, and a sync/merge/cleanup closing loop**, plus a `/worktree` command for humans.

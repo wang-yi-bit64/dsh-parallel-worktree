@@ -1,5 +1,7 @@
 # dsh-parallel-worktree
 
+[![CI](https://github.com/wang-yi-bit64/dsh-parallel-worktree/actions/workflows/ci.yml/badge.svg)](https://github.com/wang-yi-bit64/dsh-parallel-worktree/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/dsh-parallel-worktree.svg)](https://www.npmjs.com/package/dsh-parallel-worktree)
+
 给 DSH 加上「多分支并行开发」能力的插件：为每个任务开一个独立的 git worktree，让多个 Agent / 多个终端在同一仓库上并行干活，互不污染。
 
 它补的是 DSH 内置 `create_worktree` 之外的一层工程化：内置工具只负责「建一个检出」，这个插件负责**注册表、布局约定、环境引导、同步/合并/清理的收尾闭环**，以及一条给人类用的 `/worktree` 命令。
