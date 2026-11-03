@@ -19,6 +19,14 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+      - name: Check NPM_TOKEN
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN secret is missing. Add it under Settings -> Secrets and variables -> Actions with the name NPM_TOKEN (npm Automation token), then re-run this workflow."
+            exit 1
+          fi
       - name: Show what will be published
         run: npm pack --dry-run
       - name: Publish with provenance
