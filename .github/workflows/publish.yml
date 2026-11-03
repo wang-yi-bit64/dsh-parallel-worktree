@@ -7,14 +7,13 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # OIDC: needed by npm Trusted Publishing and by --provenance
+  id-token: write   # OIDC: npm Trusted Publishing + --provenance
 
 jobs:
   publish:
     name: npm publish
     runs-on: ubuntu-latest
-    # Optional: set this to the same environment you configure as the trusted
-    # publisher on npmjs.com. Environment secrets would shadow repository ones.
+    # Must match the Environment name on the npm trusted publisher connection.
     environment: NPM_KEY
     steps:
       - uses: actions/checkout@v4
@@ -26,18 +25,12 @@ jobs:
         run: npm install -g npm@11
       - name: Show what will be published
         run: npm pack --dry-run
-      - name: Who is publishing
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_KEY || secrets.NPM_TOKEN }}
+      - name: Auth mode
         run: |
           if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "Mode: token (NPM_KEY / NPM_TOKEN secret)"
+            echo "::warning::a token is present in the environment; expected none for OIDC"
           else
             echo "Mode: Trusted Publishing (OIDC, no stored token)"
-            echo "No npm secret found. This works only after the trusted publisher is configured"
-            echo "for this repository/workflow on npmjs.com; otherwise npm returns E403 2FA."
           fi
       - name: Publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_KEY || secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public
