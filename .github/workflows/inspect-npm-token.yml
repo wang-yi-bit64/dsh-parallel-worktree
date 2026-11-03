@@ -1,0 +1,27 @@
+name: Inspect npm token (diagnostic)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    name: npm token metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read token metadata from the npm registry
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_KEY || secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then echo "::error::no token secret"; exit 1; fi
+          code=$(curl -sS -o /tmp/tokens.json -w '%{http_code}' \
+            -H "Authorization: Bearer $NODE_AUTH_TOKEN" \
+            https://registry.npmjs.org/-/npm/v1/tokens)
+          echo "HTTP $code"
+          echo '--- token list (values masked by npm) ---'
+          cat /tmp/tokens.json
+          echo
+          echo '--- summary ---'
+          jq -r '.[] | "token=\(.token) bypass_2fa=\(.bypass_2fa) readonly=\(.readonly) expires=\(.expires) permissions=\(.permissions|tostring)"' /tmp/tokens.json || true
