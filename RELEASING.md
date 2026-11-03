@@ -15,8 +15,9 @@ npm publish --access public    # 会先跑 npm pack，上传 20 个文件
 ### B. 由 GitHub Actions 发布（推荐）
 
 1. 在 npmjs.com → Access Tokens → Generate New Token 选择 **Automation**，复制 token。
-2. 在仓库 Settings → Secrets and variables → Actions → New repository secret，名字填 `NPM_TOKEN`。
-   或者命令行：`gh secret set NPM_TOKEN --repo wang-yi-bit64/dsh-parallel-worktree`（粘贴 token）。
+2. 二选一保存 token：
+   - **环境 secret（workflow 已按这个配置）**：Settings → Environments → 新建/选择环境 `NPM_KEY` → Add environment secret，名字 `NPM_KEY`；job 里已声明 `environment: NPM_KEY`。
+   - **仓库 secret**：Settings → Secrets and variables → Actions → New repository secret，名字 `NPM_TOKEN`（workflow 会回退到它）。
 3. 触发 `Publish to npm` 工作流：
    - Actions 页面 → **Publish to npm** → **Run workflow**，或
    - `gh workflow run "Publish to npm" --repo wang-yi-bit64/dsh-parallel-worktree`，或

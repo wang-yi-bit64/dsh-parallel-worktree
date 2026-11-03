@@ -13,18 +13,20 @@ jobs:
   publish:
     name: npm publish
     runs-on: ubuntu-latest
+    # 环境 secret 只有在 job 声明了同名 environment 时才可用。
+    environment: NPM_KEY
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-      - name: Check NPM_TOKEN
+      - name: Check the npm token
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN_VALUE: ${{ secrets.NPM_KEY || secrets.NPM_TOKEN }}
         run: |
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "::error::NPM_TOKEN secret is missing. Add it under Settings -> Secrets and variables -> Actions with the name NPM_TOKEN (npm Automation token), then re-run this workflow."
+          if [ -z "${NPM_TOKEN_VALUE:-}" ]; then
+            echo "::error::No npm token found. Add an environment secret named NPM_KEY under Settings -> Environments -> NPM_KEY, or a repository secret named NPM_TOKEN, then re-run this workflow."
             exit 1
           fi
       - name: Show what will be published
@@ -32,4 +34,4 @@ jobs:
       - name: Publish with provenance
         run: npm publish --provenance --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_KEY || secrets.NPM_TOKEN }}
