@@ -2,6 +2,7 @@
  * 测试脚手架：临时 git 仓库 + 假 ctx（无宿主）。
  */
 import { execFileSync, spawn } from 'node:child_process'
+import { realpathSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -13,7 +14,10 @@ export function run(cwd, args, options = {}) {
 }
 
 export async function makeRepo(options = {}) {
-  const base = await fs.mkdtemp(path.join(os.tmpdir(), 'dsh-pw-'))
+  // 规范化临时目录：Windows CI 的 TEMP 可能是 8.3 短名（RUNNER~1），
+  // 而 git 输出的是长路径，两边直接比较会失败。realpath.native 得到长名。
+  const baseRaw = await fs.mkdtemp(path.join(os.tmpdir(), 'dsh-pw-'))
+  const base = realpathSync.native(baseRaw)
   const repo = path.join(base, 'portal')
   await fs.mkdir(path.join(repo, 'src'), { recursive: true })
   run(repo, ['init', '-q', '-b', 'main'])
