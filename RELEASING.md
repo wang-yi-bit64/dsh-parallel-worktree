@@ -12,7 +12,22 @@ npm login                      # 输入 npm 账号
 npm publish --access public    # 会先跑 npm pack，上传 20 个文件
 ```
 
-### B. 由 GitHub Actions 发布（推荐）
+### B. 由 GitHub Actions 发布（推荐：Trusted Publishing）
+
+npm 对「长期 token」有安全警告（“There are security risks with this option. For automation or CI/CD uses, please use Trusted Publishing instead.”）。Trusted Publishing 用 GitHub 的 OIDC 短期凭证代替长期 token：工作流里不需要保存任何 npm 密钥，npm 直接校验「这个仓库的、这个 workflow 文件的、这个 environment 的」运行。
+
+**首次发布（bootstrap）**：包还不存在于 npm 时，npm 的包设置页无法配置 trusted publisher，所以第一次必须用 token 发：
+1. 生成一个 **Automation** classic token（或 Granular token 勾 Bypass 2FA + Packages: Read and write + All packages）。
+2. 保存为 secret（仓库级 `NPM_KEY`，或环境 `NPM_KEY` 下的 `NPM_KEY`）。
+3. 跑本 workflow，得到 `dsh-parallel-worktree@0.2.0`。
+
+**之后切到 Trusted Publishing（建议立刻做）**：
+1. npmjs.com → 该包 → Settings → **Trusted publishing** → Add a trusted publisher，填：Repository `wang-yi-bit64/dsh-parallel-worktree`、Workflow filename `publish.yml`、Environment `NPM_KEY`（与 workflow 里的 `environment:` 一致；如不想用环境，把 workflow 里这一行也删掉，保持一致即可）。
+2. 删掉仓库/环境里的 `NPM_KEY` secret。
+3. 再跑 workflow：日志会打印 `Mode: Trusted Publishing (OIDC, no stored token)`，不需要 OTP 也不需要 token。
+4. 之后所有版本都用 tag（`v0.2.1`…）或 Run workflow 发布即可。
+
+### B2. 用 token 发布（备用，非首选）
 
 1. 在 npmjs.com → Access Tokens → Generate New Token 选择 **Automation**，复制 token。
 2. 二选一保存 token：

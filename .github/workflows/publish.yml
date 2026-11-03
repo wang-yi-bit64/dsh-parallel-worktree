@@ -7,13 +7,14 @@ on:
 
 permissions:
   contents: read
-  id-token: write
+  id-token: write   # OIDC: needed by npm Trusted Publishing and by --provenance
 
 jobs:
   publish:
     name: npm publish
     runs-on: ubuntu-latest
-    # 环境 secret 只有在 job 声明了同名 environment 时才可用。
+    # Optional: set this to the same environment you configure as the trusted
+    # publisher on npmjs.com. Environment secrets would shadow repository ones.
     environment: NPM_KEY
     steps:
       - uses: actions/checkout@v4
@@ -21,17 +22,22 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-      - name: Check the npm token
-        env:
-          NPM_TOKEN_VALUE: ${{ secrets.NPM_KEY || secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "${NPM_TOKEN_VALUE:-}" ]; then
-            echo "::error::No npm token found. Add an environment secret named NPM_KEY under Settings -> Environments -> NPM_KEY, or a repository secret named NPM_TOKEN, then re-run this workflow."
-            exit 1
-          fi
+      - name: Use an npm that supports Trusted Publishing
+        run: npm install -g npm@11
       - name: Show what will be published
         run: npm pack --dry-run
-      - name: Publish with provenance
-        run: npm publish --provenance --access public
+      - name: Who is publishing
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_KEY || secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "Mode: token (NPM_KEY / NPM_TOKEN secret)"
+          else
+            echo "Mode: Trusted Publishing (OIDC, no stored token)"
+            echo "No npm secret found. This works only after the trusted publisher is configured"
+            echo "for this repository/workflow on npmjs.com; otherwise npm returns E403 2FA."
+          fi
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_KEY || secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
