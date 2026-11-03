@@ -1,6 +1,6 @@
 {
   "name": "dsh-parallel-worktree",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "DSH 并行开发 worktree 编排插件：创建/列出/状态/同步/合并/清理，注册表 + 环境引导 + /worktree 命令。",
   "repository": {
     "type": "git",

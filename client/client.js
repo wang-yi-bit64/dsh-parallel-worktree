@@ -40,6 +40,8 @@ window.__ModuleLoader__.load({
 			'panel.dirty': '\u6709\u6539\u52a8',
 			'panel.current': '\u5f53\u524d',
 			'panel.base': '\u57fa\u7ebf {branch}',
+			'chip.idle': '\u5e76\u884c worktree',
+			'panel.notGit': '\u5f53\u524d\u76ee\u5f55\u4e0d\u662f git \u4ed3\u5e93\u7684\u68c0\u51fa\u76ee\u5f55\uff0c\u6216\u8be5\u4ed3\u5e93\u8fd8\u6ca1\u6709\u5e76\u884c worktree\u3002',
 		};
 		const en = {
 			'chip.aria': 'Parallel worktree: {name}. Click to list worktrees.',
@@ -54,6 +56,8 @@ window.__ModuleLoader__.load({
 			'panel.dirty': 'modified',
 			'panel.current': 'current',
 			'panel.base': 'base {branch}',
+			'chip.idle': 'Parallel worktrees',
+			'panel.notGit': 'This folder is not inside a Git worktree repository, or it has no parallel worktrees yet.',
 		};
 
 		const styles = {
@@ -247,6 +251,8 @@ window.__ModuleLoader__.load({
 				const [list, setList] = React.useState(null);
 				const [loading, setLoading] = React.useState(false);
 				const [error, setError] = React.useState('');
+				const [probe, setProbe] = React.useState({ ready: false, count: 0 });
+				const [mountError, setMountError] = React.useState('');
 				const [copied, setCopied] = React.useState('');
 				const alive = React.useRef(true);
 
@@ -255,14 +261,33 @@ window.__ModuleLoader__.load({
 					alive.current = true;
 					if (sessionId !== '') {
 						runCommand(ctx, sessionId, '/worktree status --json').then((result) => {
-							if (!alive.current || !result.ok) return;
-							const data = result.data || {};
-							if (data.inWorktree !== true || !data.worktree) return;
-							setBadge({
-								name: String(data.worktree.name || ''),
-								branch: String(data.worktree.branch || ''),
-								path: String(data.worktree.path || ''),
-							});
+							if (!alive.current || result.skipped === true) return;
+							if (!result.ok) {
+								setProbe({ ready: true, count: 0 });
+								setMountError([result.message, result.hint].filter(Boolean).join(' \u00b7 '));
+								return;
+							}
+							const status = result.data || {};
+							if (status.inWorktree === true && status.worktree) {
+								setBadge({
+									name: String(status.worktree.name || ''),
+									branch: String(status.worktree.branch || ''),
+									path: String(status.worktree.path || ''),
+								});
+								setProbe({ ready: true, count: 0 });
+								return;
+							}
+							setProbe({ ready: true, count: 0 });
+							runCommand(ctx, sessionId, '/worktree list --json').then((listed) => {
+								if (!alive.current) return;
+								if (!listed.ok) {
+									setMountError([listed.message, listed.hint].filter(Boolean).join(' \u00b7 '));
+									return;
+								}
+								const snapshot = listed.data || {};
+								const entries = Array.isArray(snapshot.worktrees) ? snapshot.worktrees : [];
+								setProbe({ ready: true, count: entries.length });
+							}, noop);
 						}, noop);
 					}
 					return () => {
@@ -284,6 +309,7 @@ window.__ModuleLoader__.load({
 							}
 							return;
 						}
+						setMountError('');
 						setList(result.data || null);
 					});
 				}
@@ -311,10 +337,12 @@ window.__ModuleLoader__.load({
 					setError(tt('panel.copyFailed'));
 				}
 
-				if (badge === null) return null;
-
 				const rows = list && Array.isArray(list.worktrees) ? list.worktrees : [];
-				const chipAria = tt('chip.aria', { name: badge.name });
+				const chipLabel = badge !== null ? (badge.name || tt('panel.title')) : tt('chip.idle');
+				const chipMeta = badge !== null ? badge.branch : (probe.count > 0 ? String(probe.count) : '');
+				const chipAria = badge !== null ? tt('chip.aria', { name: badge.name }) : tt('chip.idle');
+				const chipTitle = badge !== null ? (badge.path || badge.name) : tt('chip.idle');
+				const shownError = error !== '' ? error : mountError;
 				const baseBranch = list && list.baseBranch ? String(list.baseBranch) : '';
 
 				return h(
@@ -332,12 +360,12 @@ window.__ModuleLoader__.load({
 							'aria-expanded': open ? 'true' : 'false',
 							'aria-haspopup': 'dialog',
 							'aria-label': chipAria,
-							title: badge.path || badge.name,
+							title: chipTitle,
 							onClick: toggle,
 						},
 						h('span', { 'aria-hidden': 'true' }, '\u26db'),
-						h('span', { style: styles.chipName }, badge.name || tt('panel.title')),
-						badge.branch !== '' ? h('span', { style: styles.chipMeta }, badge.branch) : null,
+						h('span', { style: styles.chipName }, chipLabel),
+						chipMeta !== '' ? h('span', { style: styles.chipMeta }, chipMeta) : null,
 					),
 					open
 						? h(
@@ -367,15 +395,16 @@ window.__ModuleLoader__.load({
 									),
 								),
 							),
-							error !== '' ? h('div', { style: styles.error, role: 'alert' }, error) : null,
+							shownError !== '' ? h('div', { style: styles.error, role: 'alert' }, shownError) : null,
 							baseBranch !== '' ? h('div', { style: styles.note }, tt('panel.base', { branch: baseBranch })) : null,
 							!loading && rows.length === 0 ? h('div', { style: styles.note }, tt('panel.empty')) : null,
+							probe.ready && probe.count === 0 && badge === null && shownError === '' ? h('div', { style: styles.note }, tt('panel.notGit')) : null,
 							rows.map((row, index) => {
 								const entry = row || {};
 								const name = typeof entry.name === 'string' ? entry.name : '';
 								const branch = typeof entry.branch === 'string' ? entry.branch : '';
 								const target = typeof entry.path === 'string' ? entry.path : '';
-								const isCurrent = badge.path !== '' && target === badge.path;
+								const isCurrent = badge !== null && badge.path !== '' && target === badge.path;
 								return h(
 									'div',
 									{ key: name !== '' ? name : String(index), style: styles.row },

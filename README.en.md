@@ -22,8 +22,8 @@ All three come from `locale/en.json`, `locale/zh.json` and `icon.svg` inside the
 
 The client half (the `client` part of the same package) contributes two pieces of session UI:
 
-- a **Dock badge** in the **composer dock below the session input**; it renders `⛛ <name> <branch>` only when `/worktree status --json` reports `inWorktree: true`, and renders nothing otherwise;
-- a **worktree panel** that pops upward when the badge is opened, listing every worktree of the repository. Each row shows name / branch / state / dirty / **ahead (↑n) / behind (↓n)** / whether it is "current" / the full path, with a **copy path** button; the header has only **refresh** and **close**.
+- a **Dock badge** in the **composer dock below the session input**, **always visible**: inside a managed worktree it reads `⛛ <name> <branch>`; outside one it reads `⛛ Parallel worktrees` (with the repository's worktree count when there is any), and opening it still lists every worktree — it is an entry point, not something that only appears in special folders;
+- a **worktree panel** that pops upward when the badge is opened, listing every worktree of the repository. Each row shows name / branch / state / dirty / **ahead (↑n) / behind (↓n)** / whether it is "current" / the full path, with a **copy path** button; the header has only **refresh** and **close**. When the current folder is not a Git repository the panel shows one explanatory line instead of nothing.
 
 The panel is **read-only**: its data comes only from `/worktree status --json` (once on mount) and `/worktree list --json` (once when opened, once per refresh), with no polling; there is no create, remove or merge entry point, because those writes stay on the `/worktree` command and the model tools by design (so a UI misclick can never discard uncommitted work). The panel, the commands and the tools read the same manager and the same `registry.json`, so they always show one set of data.
 
