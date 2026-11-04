@@ -56,12 +56,12 @@
 
 | 渠道 | 最新版本 | 说明 |
 | --- | --- | --- |
-| npm `dsh-parallel-worktree` | **0.2.2**（`latest`，2026-11-03 发布） | 目前唯一能拿到 0.2.2 的地方；npm 上依次发布过 0.2.0、0.2.1、0.2.2（`0.0.0-stage` 是早期占位预发布，`latest` 不指向它） |
-| GitHub Releases | **v0.2.1**（2026-11-03） | **0.2.2 尚未在 GitHub 上发布**：Releases 页没有 v0.2.2 条目，也没有 0.2.2 的 tarball 附件 |
+| npm `dsh-parallel-worktree` | **0.2.2**（`latest`，2026-11-03 发布） | npm 上依次发布过 0.2.0、0.2.1、0.2.2（`0.0.0-stage` 是早期占位预发布，`latest` 不指向它） |
+| GitHub Releases | **v0.2.2**（2026-11-04 发布） | 已发布 [v0.2.2 Release](https://github.com/wang-yi-bit64/dsh-parallel-worktree/releases/tag/v0.2.2)，条目自带源码 tarball/zip（GitHub 自动生成）；此前最新为 v0.2.1 |
 
-仓库里 `package.json` 的 `version` 就是 0.2.2，与 npm 上的 0.2.2 对应；GitHub 侧的 `v0.2.2` tag 已经推到远端，但 Release 条目还没建——`publish.yml` 只负责发 npm，GitHub Release 要另外跑 `gh release create`。
+仓库里 `package.json` 的 `version` 就是 0.2.2，与 npm、GitHub 两侧的 0.2.2 对应；`v0.2.2` tag 与 Release 条目都已在远端——`publish.yml` 只负责发 npm，GitHub Release 由单独的 `gh release create` 创建。
 
-所以：**要 0.2.2 就按下面的 A 从 npm 装；想从 GitHub 下载安装包，能拿到的最新版本是 v0.2.1。** 想直接跟仓库 `main` 上的未发布提交，用 git 地址安装（同样要确认 `dsh.profile.bundles` 里有这个包名）：
+所以：**两个渠道都能拿到 0.2.2**——按下面的 A 从 npm 装，或从 GitHub Release v0.2.2 下载源码包后走 B 的 `install.mjs`。想直接跟仓库 `main` 上的未发布提交，用 git 地址安装（同样要确认 `dsh.profile.bundles` 里有这个包名）：
 
 ```powershell
 dsh plugin --profile desktop add github:wang-yi-bit64/dsh-parallel-worktree

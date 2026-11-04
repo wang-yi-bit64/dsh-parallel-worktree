@@ -56,12 +56,12 @@ The two publishing channels are at different stages, so the version you can get 
 
 | Channel | Latest version | Notes |
 | --- | --- | --- |
-| npm `dsh-parallel-worktree` | **0.2.2** (`latest`, published 2026-11-03) | the only place 0.2.2 exists today; npm has seen 0.2.0, 0.2.1 and 0.2.2 in order (`0.0.0-stage` is an early placeholder prerelease and `latest` does not point at it) |
-| GitHub Releases | **v0.2.1** (2026-11-03) | **0.2.2 has not been released on GitHub**: there is no v0.2.2 entry and no 0.2.2 tarball asset |
+| npm `dsh-parallel-worktree` | **0.2.2** (`latest`, published 2026-11-03) | npm has seen 0.2.0, 0.2.1 and 0.2.2 in order (`0.0.0-stage` is an early placeholder prerelease and `latest` does not point at it) |
+| GitHub Releases | **v0.2.2** (published 2026-11-04) | the [v0.2.2 Release](https://github.com/wang-yi-bit64/dsh-parallel-worktree/releases/tag/v0.2.2) exists, with the auto-generated source tarball/zip; the previous newest was v0.2.1 |
 
-`package.json` in the repository reads 0.2.2, matching the npm release; the `v0.2.2` tag is already on the remote, but the Release entry was never created — `publish.yml` only publishes to npm, while a GitHub Release needs a separate `gh release create`.
+`package.json` in the repository reads 0.2.2, matching both the npm and the GitHub release; the `v0.2.2` tag and the Release entry are both on the remote — `publish.yml` only publishes to npm, while the GitHub Release is created by a separate `gh release create`.
 
-So: **for 0.2.2, install from npm (route A below); for a downloadable package from GitHub, the newest one is v0.2.1.** To track unpushed commits on `main`, install from the git URL (and still make sure the package name is in `dsh.profile.bundles`):
+So: **0.2.2 is available on both channels** — install from npm (route A below), or download the source package from GitHub Release v0.2.2 and use route B's `install.mjs`. To track unpushed commits on `main`, install from the git URL (and still make sure the package name is in `dsh.profile.bundles`):
 
 ```powershell
 dsh plugin --profile desktop add github:wang-yi-bit64/dsh-parallel-worktree
