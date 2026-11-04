@@ -7,3 +7,4 @@ test-run.*
 Thumbs.db
 .vscode/
 .idea/
+.verify-tmp/

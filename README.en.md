@@ -50,15 +50,54 @@ This plugin turns all of that into queryable, repeatable operations.
 - **Cleanup**: `/worktree remove` (a dirty worktree needs `--force`) and `/worktree prune` (drops registry entries whose directory is gone).
 - **Concurrency safety**: registry writes are atomic (`tmp` + rename) and serialised across processes by a `registry.lock` file; `batch` creates several worktrees under the same lock.
 
-## Install
+## Release status
 
-The plugin has to be composed into a DSH profile — that is how DSH plugins activate: `dsh.profile.bundles` lists package names, and DSH reads each package's `cordis.patch.yml` at start-up to inject the plugin row.
+The two publishing channels are at different stages, so the version you can get depends on where you look:
+
+| Channel | Latest version | Notes |
+| --- | --- | --- |
+| npm `dsh-parallel-worktree` | **0.2.2** (`latest`, published 2026-11-03) | the only place 0.2.2 exists today; npm has seen 0.2.0, 0.2.1 and 0.2.2 in order (`0.0.0-stage` is an early placeholder prerelease and `latest` does not point at it) |
+| GitHub Releases | **v0.2.1** (2026-11-03) | **0.2.2 has not been released on GitHub**: there is no v0.2.2 entry and no 0.2.2 tarball asset |
+
+`package.json` in the repository reads 0.2.2, matching the npm release; the `v0.2.2` tag is already on the remote, but the Release entry was never created — `publish.yml` only publishes to npm, while a GitHub Release needs a separate `gh release create`.
+
+So: **for 0.2.2, install from npm (route A below); for a downloadable package from GitHub, the newest one is v0.2.1.** To track unpushed commits on `main`, install from the git URL (and still make sure the package name is in `dsh.profile.bundles`):
 
 ```powershell
-# run from the repository root (the plugin directory)
+dsh plugin --profile desktop add github:wang-yi-bit64/dsh-parallel-worktree
+```
+
+## Install
+
+Activation looks at three things for the same package: it declares `dsh.bundle` (this one ships `cordis.patch.yml`), its name is listed in the profile's `dsh.profile.bundles`, and its files resolve from `node_modules`. Pick one of the two routes below, depending on who should own the package files.
+
+### A. Install from npm (recommended; npm's latest is 0.2.2)
+
+In DSH: **Settings → Plugins → Add plugin** (the arrow menu also offers "install a third-party plugin" — package name, git repository or local directory), type `dsh-parallel-worktree` and confirm. The plugin manager runs `pnpm add` inside the profile, records the package in `<profile>/package.json` under `dependencies` (an exact version — currently 0.2.2) and registers it in `dsh.profile.bundles`; the finished entry shows the version pnpm actually installed.
+
+The command-line equivalent takes two steps — `dsh plugin` only forwards its arguments to pnpm inside the profile directory and **does not touch bundles**:
+
+```powershell
+dsh plugin --profile desktop add dsh-parallel-worktree    # runs pnpm add in the profile
+```
+
+Then add the package name to `<profile>/package.json`:
+
+```json
+{ "dsh": { "profile": { "bundles": ["...", "dsh-parallel-worktree"] } } }
+```
+
+On this route the package lives in `<profile>/node_modules/dsh-parallel-worktree` and pnpm owns it: it is a declared dependency, so any number of plugin-manager `pnpm install` runs leave it alone.
+
+### B. Install from a source checkout (`install.mjs`, no pnpm)
+
+Offline machines, no npm access, or a profile whose pnpm project should not manage this package — use the installer shipped inside the package:
+
+```powershell
+# run from the plugin directory (the repository root)
 node install.mjs                    # into %USERPROFILE%\.dsh\profiles\desktop
 node install.mjs --dry-run          # show the plan, write nothing
-node install.mjs --profile <dir>    # a different profile
+node install.mjs --profile desktop  # another profile (name or directory)
 ```
 
 The script does two things:
@@ -66,21 +105,21 @@ The script does two things:
 1. preflight — checks the package can be loaded as a bundle (`dsh.bundle.patch` must point at an existing `cordis.patch.yml` inside the package);
 2. copy the package files to **`<DSH_HOME>/node_modules/dsh-parallel-worktree`** (by default `%USERPROFILE%\.dsh\node_modules\`) and append `dsh-parallel-worktree` to `dsh.profile.bundles`.
 
-**Why `~/.dsh/node_modules` and not the profile?** A profile directory is itself a pnpm project (`pnpm-lock.yaml`, `node_modules/.modules.yaml`), and the DSH plugin manager runs `pnpm install` there: **any directory that is not declared in `dependencies` is treated as extraneous and deleted**. Once that happens, start-up fails with:
+**Why does the script install into `~/.dsh/node_modules` and not the profile?** A profile directory is itself a pnpm project (`pnpm-lock.yaml`, `node_modules/.modules.yaml`), and the DSH plugin manager runs `pnpm install` there: **any directory that is not declared in `dependencies` is treated as extraneous and deleted**. Once that happens, start-up fails with:
 
 ```text
 dsh: cannot resolve profile bundle "dsh-parallel-worktree" from the dsh installation or <profile>; run 'dsh plugin --profile <name> install' if its dependency is not installed
 ```
 
-`~\.dsh\node_modules` is an ancestor of the profile in Node's `node_modules` lookup, and DSH's `app-boot` resolves bundles with `require.resolve.paths()`, so the package is found there just the same — while pnpm never manages that directory. In-app plugin updates and any number of `pnpm install` runs leave it alone.
+`~\.dsh\node_modules` is an ancestor of the profile in Node's `node_modules` lookup, and DSH's `app-boot` resolves bundles with `require.resolve.paths()`, so the package is found there just the same — while pnpm never manages that directory. In-app plugin updates and any number of `pnpm install` runs leave it alone. (Route A is the mirror image: that copy has to be a declared dependency to survive.)
 
 It backs up `package.json` to `package.json.bak-<timestamp>` before editing and rolls back on failure. `--no-bundles` copies files without touching bundles; `--force` skips the same-version notice. The copy includes `locale/`, `icon.svg` and every runtime file — the plugin card depends on them, and a missing piece degrades the card to the bare package name. The script also removes a stale copy that older versions left in `<profile>/node_modules`.
 
-**Do not add the package to `dependencies` by hand.** Activation only looks at three things: the package declares `dsh.bundle`, its name is in `dsh.profile.bundles`, and its files resolve from `node_modules` (or the host install directory). Declaring `dependencies` without running the package manager leaves `pnpm-lock.yaml` inconsistent. If you want the normal npm flow, install with your package manager and make sure it is in `bundles` afterwards.
+**Do not add the package to `dependencies` by hand.** A line without a pnpm run leaves `pnpm-lock.yaml` inconsistent, and the next `pnpm install` prunes the directory anyway. Either let the plugin panel / pnpm install it (A), or use the script (B).
 
 **Fully quit and restart DSH Desktop** afterwards (closing the window is not enough) — profiles are composed at start-up, and the profile directory is locked while the desktop is running, so `install.mjs` should run with the app closed.
 
-To verify: run `/worktree help` in any session inside a git repository — the subcommand list appearing means registration succeeded (`/worktree help` does not need git state; `/worktree list` does). If the command is missing, check the newest log under `<profile>/.plugin-manager/logs`. The two common failures are `ERR_MODULE_NOT_FOUND ... imported from <profile>/` (package files not copied) and `declares no dsh.bundle` (missing `dsh.bundle.patch`).
+To verify: run `/worktree help` in any session inside a git repository — the subcommand list appearing means registration succeeded (`/worktree help` does not need git state; `/worktree list` does). If the command is missing, check the newest log under `<profile>/.plugin-manager/logs`. The two common failures are `ERR_MODULE_NOT_FOUND ... imported from <profile>/` (package files not in place) and `declares no dsh.bundle` (missing `dsh.bundle.patch`).
 
 ## Quick start
 
@@ -399,7 +438,7 @@ Then **fully quit and restart** DSH Desktop. To confirm the files are in place:
 Test-Path "$env:USERPROFILE\.dsh\node_modules\dsh-parallel-worktree\package.json"   # must be True
 ```
 
-If you prefer the normal npm flow, publish or install the package as a real dependency (add it to `dependencies` and run `dsh plugin --profile <name> install`) so pnpm treats it as its own.
+Or switch to the npm route: install from the plugin panel, or run `dsh plugin --profile desktop add dsh-parallel-worktree` and then register the package name in `dsh.profile.bundles`. That makes it a real profile dependency, so pnpm treats it as its own and stops pruning it.
 
 
 ### 1. How is this different from DSH's built-in `create_worktree`? Do they clash?
@@ -460,7 +499,7 @@ Not directly. DSH resolves plugins by package name under the profile's `node_mod
 
 ### 10. Does uninstalling delete my worktrees?
 
-No. Uninstalling removes `<profile>/node_modules/dsh-parallel-worktree` and one line from `bundles`. Worktree directories, branches and `registry.json` all remain — clean them up with `/worktree remove` / `prune` or by hand. After uninstalling those directories are still ordinary git checkouts, and the branches still exist.
+No. Uninstalling only removes the package itself (`<DSH_HOME>/node_modules/dsh-parallel-worktree` for an `install.mjs` install, `<profile>/node_modules/dsh-parallel-worktree` for the npm route) and one line from `bundles`. Worktree directories, branches and `registry.json` all remain — clean them up with `/worktree remove` / `prune` or by hand. After uninstalling those directories are still ordinary git checkouts, and the branches still exist.
 
 ### 11. Why can't the agent merge or remove?
 
@@ -521,13 +560,29 @@ After editing code, re-validate the locale and icon too: `locale/*.json` must be
 
 ## Uninstall
 
+The removal route mirrors the install route.
+
+### A. Installed from npm / pnpm (plugin panel or `dsh plugin add`)
+
 ```powershell
-node uninstall.mjs                  # from the default profile
-node uninstall.mjs --profile <dir>  # a specific profile
-node uninstall.mjs --dry-run        # show the plan only
+dsh plugin --profile desktop remove dsh-parallel-worktree    # runs pnpm remove in the profile
 ```
 
-It removes `dsh-parallel-worktree` from `dsh.profile.bundles` (and from `dependencies` if present) and deletes `<profile>/node_modules/dsh-parallel-worktree`; `package.json` is backed up first. **Restart DSH afterwards.** No worktree data is touched.
+This updates `dependencies` and `pnpm-lock.yaml` in `<profile>/package.json` and removes `<profile>/node_modules/dsh-parallel-worktree`; drop `dsh-parallel-worktree` from `dsh.profile.bundles` afterwards. Uninstalling from the plugin panel handles both steps.
+
+### B. Installed with `install.mjs`
+
+```powershell
+node uninstall.mjs                   # from the default profile
+node uninstall.mjs --profile desktop # a specific profile (name or directory)
+node uninstall.mjs --dry-run         # show the plan only
+```
+
+It removes `dsh-parallel-worktree` from `dsh.profile.bundles` (and from `dependencies` if present), deletes `<DSH_HOME>/node_modules/dsh-parallel-worktree` (and, when that target exists, the stale copy older versions left in `<profile>/node_modules`), and backs `package.json` up to `package.json.bak-<timestamp>` first.
+
+Note it **does not run pnpm**: if the package was installed as a profile dependency, the script only edits the manifest and the files under `<profile>/node_modules` stay until the next `pnpm install` — use route A for that case.
+
+**Restart DSH afterwards.** No worktree data is touched: checkout directories, branches and `registry.json` all remain, and those directories are still ordinary git checkouts; clean them up with `/worktree remove` / `/worktree prune` or by hand.
 
 ## Design trade-offs
 
