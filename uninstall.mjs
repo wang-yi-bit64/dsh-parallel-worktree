@@ -61,7 +61,7 @@ async function main() {
   }
   profile = resolveProfile(profile)
   const profilePackagePath = path.join(profile, 'package.json')
-  // 新版本安装在 DSH_HOME/node_modules；老版本在 profile/node_modules，两个都删。
+  // 兜底副本在 DSH_HOME/node_modules，主副本在 profile/node_modules，两个都删。
   const target = path.join(dshHome(), 'node_modules', PACKAGE_NAME)
   const legacyTarget = path.join(profile, 'node_modules', PACKAGE_NAME)
 
@@ -97,21 +97,21 @@ async function main() {
     console.log('profile/package.json 里没有 ' + PACKAGE_NAME + ' 的条目')
   }
 
-  let exists = true
-  try {
-    await fs.stat(target)
-  } catch {
-    exists = false
-  }
-  if (exists) {
-    if (dryRun) console.log('[dry-run] 会删除 ' + target)
-    else {
-      await fs.rm(target, { recursive: true, force: true })
-      await fs.rm(legacyTarget, { recursive: true, force: true })
-      console.log('已删除   ' + target)
+  // 新版装两份：profile/node_modules（主副本）+ DSH_HOME/node_modules（兜底），都删。
+  for (const dir of [target, legacyTarget]) {
+    let exists = true
+    try {
+      await fs.stat(dir)
+    } catch {
+      exists = false
     }
-  } else {
-    console.log('目标目录不存在：' + target)
+    if (exists) {
+      if (dryRun) console.log('[dry-run] 会删除 ' + dir)
+      else {
+        await fs.rm(dir, { recursive: true, force: true })
+        console.log('已删除   ' + dir)
+      }
+    }
   }
 
   console.log('')

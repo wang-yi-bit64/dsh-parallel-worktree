@@ -2,23 +2,26 @@
 /**
  * 把 dsh-parallel-worktree 装进 DSH 桌面 profile（离线/自带包路径）。
  *
- * 依据 DSH 0.2.1-rc.5 的激活契约，激活的最小充分条件是：
- *   1. 包里有 dsh.bundle.patch 指向的 patch（本插件自带 cordis.patch.yml）
- *   2. 包名出现在 <profile>/package.json 的 dsh.profile.bundles
- *   3. 包文件在 <profile>/node_modules/<包名>（或宿主安装目录）
- *   4. 重启 DSH Desktop
+ * 依据 DSH 0.2.2-rc.3 的插件管理器契约（profile-plugins.ts），要让插件出现在
+ * 「设置 → 插件」的卡片列表里，需要三件事同时成立：
+ *   1. 包名作为依赖写进 <profile>/package.json 的 dependencies（精确版本）
+ *   2. 包文件在 <profile>/node_modules/<包名>（readProfilePlugins 从这里读版本）
+ *   3. 包名出现在 dsh.profile.bundles（reconcileProfilePlugins 会自动保持启用）
  *
- * 放哪儿有讲究：profile 目录是 pnpm 工程（有 pnpm-lock.yaml / .modules.yaml），
- * 应用自己的插件管理会跑 pnpm install，凡是没写进 dependencies 的目录都会被当成
- * 多余文件删掉（真实报错：cannot resolve profile bundle "dsh-parallel-worktree"）。
- * 所以脚本把包放进 <DSH_HOME>/node_modules/<包名>——这是 Node 解析 node_modules 时
- * 的上级目录，app-boot 的 require.resolve.paths 也会走到它，pnpm 从不管理它。
- * 不写 dependencies、不碰 pnpm-lock.yaml，避免把 profile 的锁文件搞坏。
+ * 所以脚本把主副本放进 profile/node_modules 并写 dependencies（等价于在
+ * 「设置 → 插件 → 添加插件」跑 pnpm add 的落盘产物，但离线完成）；同时往
+ * <DSH_HOME>/node_modules 放一份兜底副本——万一 pnpm install 把 profile 里
+ * 的目录清掉，bundle 解析仍能从上级目录命中，插件退化为「不在列表但照常工作」，
+ * 而不是启动报 cannot resolve profile bundle。
  *
  * 改 package.json 前备份成 package.json.bak-<时间戳>；写入失败自动回滚。
+ * 依赖版本与 pnpm-lock 不一致时 pnpm install 会重算依赖，npm 上的 0.2.x
+ * 同名包存在，重算不会失败。
  *
  * 用法：
- *   node install.mjs [--profile <dir|name>] [--dry-run] [--force] [--no-bundles]
+ *   node install.mjs [--profile <dir|name>] [--dry-run] [--force] [--no-bundles] [--no-deps]
+ *     --no-deps  不写 dependencies、不往 profile/node_modules 复制（旧行为：只有
+ *               DSH_HOME 兜底副本 + bundles，不出现在插件管理器列表）
  */
 import { existsSync } from 'node:fs'
 import fs from 'node:fs/promises'
@@ -52,21 +55,23 @@ function resolveProfile(value) {
 }
 
 const HELP = [
-  '用法：node install.mjs [--profile <dir>] [--dry-run] [--force] [--no-bundles]',
+  '用法：node install.mjs [--profile <dir>] [--dry-run] [--force] [--no-bundles] [--no-deps]',
   '',
   '  --profile <dir|name>  DSH profile 目录或名字（如 desktop、web），缺省 ' + defaultProfile(),
   '  --dry-run         只做预检并打印计划，不写任何文件',
   '  --force           目标已安装同版本时仍强制覆盖',
   '  --no-bundles      只复制文件、不改 dsh.profile.bundles（手工启用时用）',
+  '  --no-deps         不写 dependencies、不放 profile/node_modules（不出现在插件管理器列表）',
 ].join('\n')
 
 function parseArgv(argv) {
-  const options = { profile: null, dryRun: false, force: false, bundles: true, help: false }
+  const options = { profile: null, dryRun: false, force: false, bundles: true, deps: true, help: false }
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
     if (token === '--dry-run') options.dryRun = true
     else if (token === '--force') options.force = true
     else if (token === '--no-bundles') options.bundles = false
+    else if (token === '--no-deps') options.deps = false
     else if (token === '--help' || token === '-h') options.help = true
     else if (token === '--profile') { options.profile = argv[index + 1]; index += 1 }
     else if (token.startsWith('--profile=')) options.profile = token.slice('--profile='.length)
@@ -148,11 +153,11 @@ async function main() {
   }
   const profile = resolveProfile(options.profile)
   const profilePackagePath = path.join(profile, 'package.json')
-  // 放在 DSH_HOME/node_modules 而不是 profile/node_modules：profile 是 pnpm 工程，
-  // pnpm install 会删掉没有写进 dependencies 的多余目录（本插件不写 dependencies）。
-  const target = path.join(dshHome(), 'node_modules', PACKAGE_NAME)
-  // 老版本把包放在 profile/node_modules，pnpm 会把它当多余文件删掉；这里顺手清理残留。
-  const legacyTarget = path.join(profile, 'node_modules', PACKAGE_NAME)
+  // 主副本放 profile/node_modules（插件管理器的卡片列表从这里读）；DSH_HOME 留兜底副本。
+  // --no-deps 时回退到旧行为：只有 DSH_HOME 副本 + bundles。
+  const primaryTarget = path.join(profile, 'node_modules', PACKAGE_NAME)
+  const fallbackTarget = path.join(dshHome(), 'node_modules', PACKAGE_NAME)
+  const target = options.deps ? primaryTarget : fallbackTarget
 
   let ownManifest
   try {
@@ -176,8 +181,9 @@ async function main() {
 
   console.log('插件     ' + String(ownManifest.name) + '@' + String(ownManifest.version))
   console.log('来源     ' + HERE)
-  console.log('目标     ' + target + '（DSH_HOME 的 node_modules，pnpm 不会删）')
-  console.log('profile  ' + profile + '（只改 dsh.profile.bundles）')
+  console.log('目标     ' + target + (options.deps ? '（主副本，插件管理器从这里读卡片信息）' : '（DSH_HOME 的 node_modules，pnpm 不管理）'))
+  if (options.deps) console.log('兜底     ' + fallbackTarget + '（被 pnpm 清掉时保底）')
+  console.log('profile  ' + profile + (options.deps ? '（写 dependencies + dsh.profile.bundles）' : '（只改 dsh.profile.bundles）'))
   console.log('')
 
   const { problems, notes, inBundles } = await preflight(options, ownManifest, profileManifest, target, existing)
@@ -191,8 +197,14 @@ async function main() {
   console.log('预检通过 ' + (inBundles ? '（bundles 已包含该包，将刷新文件）' : '（bundles 待追加）'))
   console.log('')
 
-  log(options, '复制插件文件 → ' + target)
   const wanted = JSON.parse(JSON.stringify(profileManifest))
+  if (options.deps) {
+    wanted.dependencies = wanted.dependencies ?? {}
+    wanted.dependencies[PACKAGE_NAME] = String(ownManifest.version)
+  } else if (wanted.dependencies && PACKAGE_NAME in wanted.dependencies) {
+    // --no-deps 的旧行为里不该留 dependencies 条目（否则 pnpm 重算时对不上）。
+    delete wanted.dependencies[PACKAGE_NAME]
+  }
   wanted.dsh = wanted.dsh ?? {}
   wanted.dsh.profile = wanted.dsh.profile ?? {}
   const bundles = Array.isArray(wanted.dsh.profile.bundles) ? wanted.dsh.profile.bundles.slice() : []
@@ -200,6 +212,11 @@ async function main() {
   if (willAdd) bundles.push(PACKAGE_NAME)
   wanted.dsh.profile.bundles = bundles
   const manifestChanged = JSON.stringify(wanted) !== JSON.stringify(profileManifest)
+  if (options.deps) {
+    log(options, 'dependencies 写入 ' + PACKAGE_NAME + '@' + String(ownManifest.version) + '（精确版本，与 pnpm add 落盘一致）')
+  } else {
+    log(options, '--no-deps：不写 dependencies（不出现在插件管理器列表）')
+  }
   if (manifestChanged) {
     if (willAdd) log(options, 'bundles 追加 ' + PACKAGE_NAME + '（新顺序：' + bundles.join(' → ') + '）')
     else log(options, '更新 ' + profilePackagePath)
@@ -215,16 +232,10 @@ async function main() {
 
   const backup = profilePackagePath + '.bak-' + timestamp()
   let backedUp = false
-  try {
-    if (manifestChanged) {
-      await fs.copyFile(profilePackagePath, backup)
-      backedUp = true
-      console.log('已备份   ' + backup)
-    }
-    await fs.rm(legacyTarget, { recursive: true, force: true })
-    await fs.mkdir(path.dirname(target), { recursive: true })
-    await fs.rm(target, { recursive: true, force: true })
-    await fs.cp(HERE, target, {
+  const copyTo = async (dest) => {
+    await fs.mkdir(path.dirname(dest), { recursive: true })
+    await fs.rm(dest, { recursive: true, force: true })
+    await fs.cp(HERE, dest, {
       recursive: true,
       force: true,
       filter: (source) => {
@@ -235,6 +246,24 @@ async function main() {
         return !SKIP_FILES.has(path.basename(relative))
       },
     })
+  }
+  try {
+    if (manifestChanged) {
+      await fs.copyFile(profilePackagePath, backup)
+      backedUp = true
+      console.log('已备份   ' + backup)
+    }
+    if (options.deps) {
+      log(options, '复制插件文件 → ' + primaryTarget)
+      await copyTo(primaryTarget)
+      log(options, '复制兜底副本 → ' + fallbackTarget)
+      await copyTo(fallbackTarget)
+    } else {
+      log(options, '复制插件文件 → ' + fallbackTarget)
+      await copyTo(fallbackTarget)
+      // 旧行为不留 profile 副本：pnpm 会把它当多余目录，留着反而混淆排查。
+      await fs.rm(primaryTarget, { recursive: true, force: true })
+    }
     if (manifestChanged) {
       await fs.writeFile(profilePackagePath, JSON.stringify(wanted, null, 2) + '\n', 'utf8')
     }
@@ -249,7 +278,9 @@ async function main() {
   console.log('')
   console.log('安装完成。接下来：')
   console.log('  1. 完全退出 DSH Desktop（不是关窗口）再重新启动，profile 在启动时 compose')
-  console.log('     之前报 cannot resolve profile bundle 的，重启前别再让应用跑一次 pnpm install')
+  if (options.deps) {
+    console.log('     设置 → 插件 列表会出现本插件卡片（读 dependencies + profile/node_modules）')
+  }
   console.log('  2. 在仓库目录的会话里执行 /worktree help，能列出子命令即激活成功')
   console.log('  3. 让 Agent 调 worktree_create，或直接执行 /worktree create feature/demo')
   console.log('卸载：node uninstall.mjs' + (options.profile === null ? '' : ' --profile "' + profile + '"'))

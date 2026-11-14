@@ -98,24 +98,26 @@ dsh plugin --profile desktop add dsh-parallel-worktree    # 在 profile 里 pnpm
 node install.mjs                    # 装进 %USERPROFILE%\.dsh\profiles\desktop
 node install.mjs --dry-run          # 只看计划，不写文件
 node install.mjs --profile desktop  # 指定其它 profile（名字或目录都行）
+node install.mjs --no-deps          # 旧行为：不进插件管理器列表，只有 DSH_HOME 副本
 ```
 
-脚本做两件事：
+脚本做三件事：
 
 1. 预检插件自身能否被当作 bundle 加载（`dsh.bundle.patch` 指向的 `cordis.patch.yml` 必须存在且在插件目录内）；
-2. 把插件文件复制到 **`<DSH_HOME>/node_modules/dsh-parallel-worktree`**（默认 `%USERPROFILE%\.dsh\node_modules\`），并把 `dsh-parallel-worktree` 追加进 `dsh.profile.bundles`。
+2. 把插件文件复制到 **`<profile>/node_modules/dsh-parallel-worktree`**（主副本），并把 `dsh-parallel-worktree` 写进 profile `package.json` 的 `dependencies`（精确版本）+ 追加进 `dsh.profile.bundles`——这三样正是「设置 → 插件」卡片列表的读取契约，装完卡片就会出现；
+3. 往 **`<DSH_HOME>/node_modules/dsh-parallel-worktree`** 再放一份兜底副本。
 
-**为什么脚本装到 `~/.dsh/node_modules` 而不是 profile 里？** profile 目录本身是一个 pnpm 工程（有 `pnpm-lock.yaml`、`node_modules/.modules.yaml`），DSH 的插件管理器会跑 `pnpm install`，**没有写进 `dependencies` 的目录会被当作多余文件删掉**。删掉之后启动就会报：
+**为什么要两份？** 主副本让插件管理器能列出、能启停（`readProfilePlugins` 从 `dependencies` + `<profile>/node_modules` 读）；兜底副本防的是 pnpm 重算：万一插件管理器跑了 `pnpm install` 把 profile 里的目录当多余文件清掉（手工写 `dependencies` 而不跑 pnpm 时，lockfile 与目录对不上就会发生），bundle 解析仍能从 `~\.dsh\node_modules` 这个上级目录命中——插件退化为「不在列表但照常工作」，而不是启动就报：
 
 ```text
 dsh: cannot resolve profile bundle "dsh-parallel-worktree" from the dsh installation or <profile>; run 'dsh plugin --profile <name> install' if its dependency is not installed
 ```
 
-`~\.dsh\node_modules` 是 Node 解析 `node_modules` 时的上级目录，DSH 的 `app-boot` 用 `require.resolve.paths()` 从上往下找，所以放这里一样能被找到，而 pnpm 从不管理它——应用内更新插件、跑多少次 `pnpm install` 都不会删。（路线 A 恰好相反：那份必须写进 `dependencies` 才留得住。）
+`~\.dsh\node_modules` 是 Node 解析 `node_modules` 时的上级目录，DSH 的 `app-boot` 用 `require.resolve.paths()` 从上往下找，放这里一样能被找到，而 pnpm 从不管理它——应用内更新插件、跑多少次 `pnpm install` 都不会删。（路线 A 恰好相反：只有一份，必须写进 `dependencies` 才留得住。）
 
-改 `package.json` 前会备份成 `package.json.bak-<时间戳>`，写入失败自动回滚。`--no-bundles` 只复制文件不改 bundles，`--force` 跳过同版本提示。复制时会带上 `locale/`、`icon.svg` 与全部运行期文件——插件列表里的标题、描述、图标依赖它们，缺一个卡片就会退化成包名。脚本还会顺手删掉老版本留在 `<profile>/node_modules` 里的副本。
+改 `package.json` 前会备份成 `package.json.bak-<时间戳>`，写入失败自动回滚。`--no-bundles` 只复制文件不改 bundles，`--force` 跳过同版本提示，`--no-deps` 回退旧行为（不出现在插件管理器列表）。复制时会带上 `locale/`、`icon.svg` 与全部运行期文件——插件列表里的标题、描述、图标依赖它们，缺一个卡片就会退化成包名。
 
-**不要手工往 `dependencies` 里加这个包。** 只加一行却不跑 pnpm，`pnpm-lock.yaml` 会与包对不上，下次 `pnpm install` 照样按「多余目录」清理。要么让面板/pnpm 装（A），要么用脚本装（B）。
+**手工往 `dependencies` 加这个包**时版本号必须与 `npm view dsh-parallel-worktree version` 一致（pnpm 重算时按 registry 的同名包对账）；用脚本装则不用管这条，版本号取自本地 `package.json`。
 
 **装完必须完全退出并重启 DSH Desktop**（关窗口不算），profile 在启动时 compose；profile 目录在桌面运行期带写锁，安装脚本应在桌面退出后执行。
 
@@ -424,9 +426,9 @@ command "worktree" is already registered (for a per-agent variant, mount a comma
 
 ### 启动报 `cannot resolve profile bundle "dsh-parallel-worktree"` 怎么办？
 
-这是「包文件被 pnpm 当成多余目录删掉了」。profile 是 pnpm 工程，插件管理器跑 `pnpm install` 时，凡是不在 `dependencies` 里的目录都会被清理；老版本把插件装在 `<profile>/node_modules` 里，于是被删掉了。
+这是「包文件被 pnpm 当成多余目录删掉了」。profile 是 pnpm 工程，插件管理器跑 `pnpm install` 时，凡是不在 `dependencies` 里的目录都会被清理；把插件复制进 `<profile>/node_modules` 却没写 `dependencies`（比如手工拷贝）就会中招。
 
-重跑安装脚本即可（它会装到 `<DSH_HOME>/node_modules`，pnpm 不会碰那里）：
+重跑安装脚本即可（主副本进 `<profile>/node_modules` 并写 `dependencies`，另在 `<DSH_HOME>/node_modules` 放兜底副本，pnpm 不会碰那里）：
 
 ```powershell
 node install.mjs --profile desktop --force
@@ -435,7 +437,8 @@ node install.mjs --profile desktop --force
 然后**完全退出并重启** DSH Desktop。想确认装好了，检查：
 
 ```powershell
-Test-Path "$env:USERPROFILE\.dsh\node_modules\dsh-parallel-worktree\package.json"   # True 才对
+Test-Path "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-parallel-worktree\package.json"   # True 才对（主副本）
+Test-Path "$env:USERPROFILE\.dsh\node_modules\dsh-parallel-worktree\package.json"   # True 才对（兜底副本）
 ```
 
 也可以干脆改走 npm 路线：用插件面板安装，或 `dsh plugin --profile desktop add dsh-parallel-worktree` 之后把包名登记进 `dsh.profile.bundles`。这样包是 profile 的真依赖，pnpm 会把它当自己人，不会再被清掉。
@@ -499,7 +502,7 @@ git 与 Node 都受 Windows 传统 `MAX_PATH` 限制，表现为 `GIT_FAILED` �
 
 ### 10. 卸载会不会删掉我的 worktree
 
-不会。卸载只删包本身（`install.mjs` 装的那份在 `<DSH_HOME>/node_modules/dsh-parallel-worktree`，npm 路线的那份在 `<profile>/node_modules/dsh-parallel-worktree`）与 bundles 里的一行。worktree 目录、分支、`registry.json` 都留着，要清理用 `/worktree remove` / `prune` 或手工删。卸载后那些目录仍是正常 git 检出，分支也还在。
+不会。卸载只删包本身（`install.mjs` 装的两份：主副本 `<profile>/node_modules/dsh-parallel-worktree` 和兜底副本 `<DSH_HOME>/node_modules/dsh-parallel-worktree`；npm 路线的那份在 `<profile>/node_modules`）与 `dependencies`、bundles 里的条目。worktree 目录、分支、`registry.json` 都留着，要清理用 `/worktree remove` / `prune` 或手工删。卸载后那些目录仍是正常 git 检出，分支也还在。
 
 ### 11. 为什么 AI 不能合并 / 删除，非要我自己敲命令
 
