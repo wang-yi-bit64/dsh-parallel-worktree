@@ -185,14 +185,33 @@ window.__ModuleLoader__.load({
 		}
 
 		/**
+		 * Resolve the host command channel from the plugin context.
+		 *
+		 * The context is a proxy that throws on any property the plugin did not declare
+		 * in `inject` ("cannot get property X without inject"). Reading `ctx.remote`
+		 * therefore belongs inside a try: a channel we cannot reach must degrade to
+		 * "render nothing", never crash the conversation.composer.dock slot entry.
+		 * @returns {object|undefined} the command channel, or undefined when unavailable.
+		 */
+		function readCommands(ctx) {
+			try {
+				const remote = ctx && ctx.remote;
+				const commands = remote && remote.commands;
+				if (commands && typeof commands.execute === 'function') return commands;
+			} catch (error) {
+				/* ctx.remote not declared in inject, or the channel is absent */
+			}
+			return undefined;
+		}
+
+		/**
 		 * Run one /worktree line through the host command channel.
 		 * @returns {{ok: boolean, data?: object, message?: string, hint?: string, skipped?: boolean}}
 		 *   skipped means the channel (not the host command) is missing: render nothing.
 		 */
 		function runCommand(ctx, sessionId, line) {
-			const remote = ctx && ctx.remote;
-			const commands = remote && remote.commands;
-			if (!commands || typeof commands.execute !== 'function') return Promise.resolve({ ok: false, skipped: true });
+			const commands = readCommands(ctx);
+			if (commands === undefined) return Promise.resolve({ ok: false, skipped: true });
 			return Promise.resolve()
 				.then(() => commands.execute(sessionId, line, []))
 				.then((raw) => {
@@ -463,7 +482,10 @@ window.__ModuleLoader__.load({
 
 		return {
 			name: 'parallel-worktree-client',
-			inject: ['slots', 'locale', 'sessions', 'remote.commands'],
+			// `remote` (not just `remote.commands`): readCommands reads the parent service to
+			// confirm the channel exists, and the context proxy throws on any property
+			// that is not declared here.
+			inject: ['slots', 'locale', 'sessions', 'remote', 'remote.commands'],
 			apply: apply,
 		};
 	},
