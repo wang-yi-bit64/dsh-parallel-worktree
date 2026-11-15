@@ -56,12 +56,12 @@ The two publishing channels are at different stages, so the version you can get 
 
 | Channel | Latest version | Notes |
 | --- | --- | --- |
-| npm `dsh-parallel-worktree` | **0.2.2** (`latest`, published 2026-11-03) | npm has seen 0.2.0, 0.2.1 and 0.2.2 in order (`0.0.0-stage` is an early placeholder prerelease and `latest` does not point at it) |
-| GitHub Releases | **v0.2.2** (published 2026-11-04) | the [v0.2.2 Release](https://github.com/wang-yi-bit64/dsh-parallel-worktree/releases/tag/v0.2.2) exists, with the auto-generated source tarball/zip; the previous newest was v0.2.1 |
+| npm `dsh-parallel-worktree` | **0.2.3** (`latest`, published 2026-11-15) | npm has seen 0.2.0 through 0.2.3 in order (`0.0.0-stage` is an early placeholder prerelease and `latest` does not point at it). **0.2.3 fixes the dock-chip crash that hid the chip on DSH 0.2.2-rc.3**, and `install.mjs` now lands the plugin in the Settings → Plugins list |
+| GitHub Releases | **v0.2.3** (published 2026-11-15) | the [v0.2.3 Release](https://github.com/wang-yi-bit64/dsh-parallel-worktree/releases/tag/v0.2.3) exists, with the auto-generated source tarball/zip; the previous newest was v0.2.2 |
 
-`package.json` in the repository reads 0.2.2, matching both the npm and the GitHub release; the `v0.2.2` tag and the Release entry are both on the remote — `publish.yml` only publishes to npm, while the GitHub Release is created by a separate `gh release create`.
+`package.json` in the repository reads 0.2.3, matching both the npm and the GitHub release; `publish.yml` is triggered by `v*` tags and publishes to npm, while the GitHub Release is created by a separate `gh release create`.
 
-So: **0.2.2 is available on both channels** — install from npm (route A below), or download the source package from GitHub Release v0.2.2 and use route B's `install.mjs`. To track unpushed commits on `main`, install from the git URL (and still make sure the package name is in `dsh.profile.bundles`):
+So: **0.2.3 is available on both channels** — install from npm (route A below), or download the source package from GitHub Release v0.2.3 and use route B's `install.mjs`. To track unpushed commits on `main`, install from the git URL (and still make sure the package name is in `dsh.profile.bundles`):
 
 ```powershell
 dsh plugin --profile desktop add github:wang-yi-bit64/dsh-parallel-worktree
@@ -71,9 +71,9 @@ dsh plugin --profile desktop add github:wang-yi-bit64/dsh-parallel-worktree
 
 Activation looks at three things for the same package: it declares `dsh.bundle` (this one ships `cordis.patch.yml`), its name is listed in the profile's `dsh.profile.bundles`, and its files resolve from `node_modules`. Pick one of the two routes below, depending on who should own the package files.
 
-### A. Install from npm (recommended; npm's latest is 0.2.2)
+### A. Install from npm (recommended; npm's latest is 0.2.3)
 
-In DSH: **Settings → Plugins → Add plugin** (the arrow menu also offers "install a third-party plugin" — package name, git repository or local directory), type `dsh-parallel-worktree` and confirm. The plugin manager runs `pnpm add` inside the profile, records the package in `<profile>/package.json` under `dependencies` (an exact version — currently 0.2.2) and registers it in `dsh.profile.bundles`; the finished entry shows the version pnpm actually installed.
+In DSH: **Settings → Plugins → Add plugin** (the arrow menu also offers "install a third-party plugin" — package name, git repository or local directory), type `dsh-parallel-worktree` and confirm. The plugin manager runs `pnpm add` inside the profile, records the package in `<profile>/package.json` under `dependencies` (an exact version — currently 0.2.3) and registers it in `dsh.profile.bundles`; the finished entry shows the version pnpm actually installed.
 
 The command-line equivalent takes two steps — `dsh plugin` only forwards its arguments to pnpm inside the profile directory and **does not touch bundles**:
 
@@ -399,10 +399,13 @@ Several worktree capabilities can be installed at once. They occupy different la
 | --- | --- | --- | --- | --- | --- |
 | This plugin | `dsh-parallel-worktree` | tools `worktree_create` / `worktree_list` / `worktree_status`, command `/worktree` | `<repo>.wt\` outside the repo by default, `inside` on request | no | `registry.json` |
 | Built-in | `@deepseek-ai/dsh-experimental-tool-worktree` (ships with DSH) | only the `create_worktree` tool | `.agents/worktrees\<name>` inside the repo | yes (switches the session cwd after creating) | none |
+| PR review | `@deepseek-ai/dsh-experimental-forge-bundle` (ships with DSH, the "Change requests & worktrees" card) | tracks GitHub PRs in the session sidebar: checks, review comments, diffs, branch updates | creates no checkout | no | none |
 | Task-scoped | `dsh-task-worktree` (third party) | also registers `/worktree` (`mode-on` / `mode-off` / `create` / `list` / `status` / `finish` / `bring-back` / `remove` / `prune`) | its own convention | no | per-repo manifest |
 | View | `@cerbur/clutch-dsh-worktree` (third party) | adds a Worktree view that groups sessions by git worktree | creates nothing | no | none |
 
 **With the built-in `create_worktree`: no conflict, both can be installed.** The tool names differ (`create_worktree` vs `worktree_create`). The built-in one switches the session's working directory right after creating and keeps checkouts inside the repo with no registry; this plugin leaves the session directory alone and gives you the registry, the outside-repo layout, environment bootstrapping and the closing loop. Use the built-in one for a quick throwaway checkout and this one for longer-lived parallel tasks.
+
+**With the official "Change requests & worktrees" (`dsh-experimental-forge-bundle`, since DSH 0.2.2-rc.1): no conflict, different focus, both can be installed.** Both names mention worktrees, but that one takes the **PR review perspective** — it tracks existing GitHub PRs in the session sidebar (check statuses, review comments, diffs, rerunning failed checks, requesting reviews, updating the branch) and creates no checkout; this plugin takes the **local orchestration perspective** — create/list/sync/merge/clean local git worktrees, no PRs involved. One covers "the change being reviewed remotely", the other "the changes growing in parallel locally"; used together, you work inside a checkout this plugin created, push it, and its card picks up the PR from there.
 
 **With `@cerbur/clutch-dsh-worktree`: no conflict.** It is a presentation layer (group sessions by worktree); it neither creates nor modifies worktrees and has no command. This plugin is the operation layer — the view will show the checkouts you create here.
 

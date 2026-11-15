@@ -56,12 +56,12 @@
 
 | 渠道 | 最新版本 | 说明 |
 | --- | --- | --- |
-| npm `dsh-parallel-worktree` | **0.2.2**（`latest`，2026-11-03 发布） | npm 上依次发布过 0.2.0、0.2.1、0.2.2（`0.0.0-stage` 是早期占位预发布，`latest` 不指向它） |
-| GitHub Releases | **v0.2.2**（2026-11-04 发布） | 已发布 [v0.2.2 Release](https://github.com/wang-yi-bit64/dsh-parallel-worktree/releases/tag/v0.2.2)，条目自带源码 tarball/zip（GitHub 自动生成）；此前最新为 v0.2.1 |
+| npm `dsh-parallel-worktree` | **0.2.3**（`latest`，2026-11-15 发布） | npm 上依次发布过 0.2.0、0.2.1、0.2.2、0.2.3（`0.0.0-stage` 是早期占位预发布，`latest` 不指向它）。**0.2.3 修复 DSH 0.2.2-rc.3 上 dock chip 不渲染的崩溃**，并让 `install.mjs` 装完即出现在「设置 → 插件」 |
+| GitHub Releases | **v0.2.3**（2026-11-15 发布） | 已发布 [v0.2.3 Release](https://github.com/wang-yi-bit64/dsh-parallel-worktree/releases/tag/v0.2.3)，条目自带源码 tarball/zip（GitHub 自动生成）；此前最新为 v0.2.2 |
 
-仓库里 `package.json` 的 `version` 就是 0.2.2，与 npm、GitHub 两侧的 0.2.2 对应；`v0.2.2` tag 与 Release 条目都已在远端——`publish.yml` 只负责发 npm，GitHub Release 由单独的 `gh release create` 创建。
+仓库里 `package.json` 的 `version` 就是 0.2.3，与 npm、GitHub 两侧的 0.2.3 对应；`publish.yml` 由 `v*` tag 触发发 npm，GitHub Release 由单独的 `gh release create` 创建。
 
-所以：**两个渠道都能拿到 0.2.2**——按下面的 A 从 npm 装，或从 GitHub Release v0.2.2 下载源码包后走 B 的 `install.mjs`。想直接跟仓库 `main` 上的未发布提交，用 git 地址安装（同样要确认 `dsh.profile.bundles` 里有这个包名）：
+所以：**两个渠道都能拿到 0.2.3**——按下面的 A 从 npm 装，或从 GitHub Release v0.2.3 下载源码包后走 B 的 `install.mjs`。想直接跟仓库 `main` 上的未发布提交，用 git 地址安装（同样要确认 `dsh.profile.bundles` 里有这个包名）：
 
 ```powershell
 dsh plugin --profile desktop add github:wang-yi-bit64/dsh-parallel-worktree
@@ -71,9 +71,9 @@ dsh plugin --profile desktop add github:wang-yi-bit64/dsh-parallel-worktree
 
 DSH 插件激活看同一个包的三件事：包声明了 `dsh.bundle`（本包自带 `cordis.patch.yml`）、包名出现在 profile 的 `dsh.profile.bundles` 里、包文件能被 DSH 从 `node_modules` 解析到。按「包文件交给谁管」分两条路线，选一条装。
 
-### A. 从 npm 安装（推荐；npm 上的最新版就是 0.2.2）
+### A. 从 npm 安装（推荐；npm 上的最新版就是 0.2.3）
 
-在 DSH 里：**设置 → 插件 → 添加插件**（箭头菜单里还有「安装第三方插件」，可填包名、Git 仓库或本地目录），输入包名 `dsh-parallel-worktree` 确认即可。插件管理器会在 profile 目录里跑 `pnpm add`，把包写进 `<profile>/package.json` 的 `dependencies`（精确版本，当前 0.2.2），并自动登记到 `dsh.profile.bundles`；装完显示 pnpm 实际装的版本号。
+在 DSH 里：**设置 → 插件 → 添加插件**（箭头菜单里还有「安装第三方插件」，可填包名、Git 仓库或本地目录），输入包名 `dsh-parallel-worktree` 确认即可。插件管理器会在 profile 目录里跑 `pnpm add`，把包写进 `<profile>/package.json` 的 `dependencies`（精确版本，当前 0.2.3），并自动登记到 `dsh.profile.bundles`；装完显示 pnpm 实际装的版本号。
 
 命令行等价操作是两步——`dsh plugin` 只是把参数转发给 profile 目录里的 pnpm，**它不改 bundles**：
 
@@ -401,10 +401,13 @@ DSH 里可能同时出现几类 worktree 能力，层次不同，混装前先看
 | --- | --- | --- | --- | --- | --- |
 | 本插件 | `dsh-parallel-worktree` | 工具 `worktree_create` / `worktree_list` / `worktree_status`，命令 `/worktree` | 默认仓库外 `<repo>.wt\`，可配 `inside` | 否 | `registry.json` |
 | 内置 | `@deepseek-ai/dsh-experimental-tool-worktree`（DSH 自带） | 只有工具 `create_worktree` | 仓库内 `.agents/worktrees\<name>` | 是（建完把会话 cwd 切过去） | 无 |
+| PR 评审 | `@deepseek-ai/dsh-experimental-forge-bundle`（DSH 自带，即「变更请求与工作树」卡片） | 会话侧栏跟踪 GitHub PR：检查状态、评审意见、代码差异、分支更新 | 不建检出 | 否 | 无 |
 | 任务级 | `dsh-task-worktree`（第三方） | 也注册 `/worktree`（`mode-on` / `mode-off` / `create` / `list` / `status` / `finish` / `bring-back` / `remove` / `prune`） | 按它自己的约定 | 否 | 每仓库 manifest |
 | 视图 | `@cerbur/clutch-dsh-worktree`（第三方） | 只加一个 Worktree 视图（按 worktree 给会话分组） | 不建目录 | 否 | 无 |
 
 **与内置 `create_worktree`：不冲突，可以同时装。** 工具名不同（`create_worktree` vs `worktree_create`）。区别在于：内置工具建完把当前会话的工作目录切到新检出（省一步），检出在仓库内、没有注册表；本插件不改会话目录，靠返回的 `path` 或 `/worktree path` 自己切，换来注册表、仓库外布局、环境引导与收尾闭环。临时开个洞用内置就够，长期并行任务用本插件；两者混用也没问题。
+
+**与官方「变更请求与工作树」（`dsh-experimental-forge-bundle`，DSH 0.2.2-rc.1 起）：不冲突，方向不同，可以同时装。** 名字里都有「工作树」，但它走的是 **PR 评审视角**——在会话侧栏集中跟踪已存在的 GitHub PR（检查状态、评审意见、代码差异、重跑失败检查、请求评审、更新分支），不创建任何检出；本插件走的是 **本地编排视角**——创建/列出/同步/合并/清理本地 git worktree，不碰 PR。一个管「改动在远端被评审」，一个管「改动在本地并行生长」；混用时你在本插件开的检出里干活，推送后它的卡片接手跟踪 PR。
 
 **与 `@cerbur/clutch-dsh-worktree`：不冲突。** 它只做展示层（按 worktree 给会话分组），不创建、不修改 worktree，也没有命令；本插件负责操作层。同时装时，视图里能看到你用本插件建的检出。
 
