@@ -56,12 +56,12 @@
 
 | 渠道 | 最新版本 | 说明 |
 | --- | --- | --- |
-| npm `dsh-parallel-worktree` | **0.2.3**（`latest`，2026-11-15 发布） | npm 上依次发布过 0.2.0、0.2.1、0.2.2、0.2.3（`0.0.0-stage` 是早期占位预发布，`latest` 不指向它）。**0.2.3 修复 DSH 0.2.2-rc.3 上 dock chip 不渲染的崩溃**，并让 `install.mjs` 装完即出现在「设置 → 插件」 |
-| GitHub Releases | **v0.2.3**（2026-11-15 发布） | 已发布 [v0.2.3 Release](https://github.com/wang-yi-bit64/dsh-parallel-worktree/releases/tag/v0.2.3)，条目自带源码 tarball/zip（GitHub 自动生成）；此前最新为 v0.2.2 |
+| npm `dsh-parallel-worktree` | **0.2.4**（`latest`，2026-11-15 发布） | npm 上依次发布过 0.2.0～0.2.4（`0.0.0-stage` 是早期占位预发布，`latest` 不指向它）。**0.2.4 新增插件设置表单**：详情页直接改存放位置（`storageRoot`）等 9 项配置，保存即时生效 |
+| GitHub Releases | **v0.2.4**（2026-11-15 发布） | 已发布 [v0.2.4 Release](https://github.com/wang-yi-bit64/dsh-parallel-worktree/releases/tag/v0.2.4)，条目自带源码 tarball/zip（GitHub 自动生成）；此前最新为 v0.2.3 |
 
-仓库里 `package.json` 的 `version` 就是 0.2.3，与 npm、GitHub 两侧的 0.2.3 对应；`publish.yml` 由 `v*` tag 触发发 npm，GitHub Release 由单独的 `gh release create` 创建。
+仓库里 `package.json` 的 `version` 就是 0.2.4，与 npm、GitHub 两侧的 0.2.4 对应；`publish.yml` 由 `v*` tag 触发发 npm，GitHub Release 由单独的 `gh release create` 创建。
 
-所以：**两个渠道都能拿到 0.2.3**——按下面的 A 从 npm 装，或从 GitHub Release v0.2.3 下载源码包后走 B 的 `install.mjs`。想直接跟仓库 `main` 上的未发布提交，用 git 地址安装（同样要确认 `dsh.profile.bundles` 里有这个包名）：
+所以：**两个渠道都能拿到 0.2.4**——按下面的 A 从 npm 装，或从 GitHub Release v0.2.4 下载源码包后走 B 的 `install.mjs`。想直接跟仓库 `main` 上的未发布提交，用 git 地址安装（同样要确认 `dsh.profile.bundles` 里有这个包名）：
 
 ```powershell
 dsh plugin --profile desktop add github:wang-yi-bit64/dsh-parallel-worktree
@@ -71,9 +71,9 @@ dsh plugin --profile desktop add github:wang-yi-bit64/dsh-parallel-worktree
 
 DSH 插件激活看同一个包的三件事：包声明了 `dsh.bundle`（本包自带 `cordis.patch.yml`）、包名出现在 profile 的 `dsh.profile.bundles` 里、包文件能被 DSH 从 `node_modules` 解析到。按「包文件交给谁管」分两条路线，选一条装。
 
-### A. 从 npm 安装（推荐；npm 上的最新版就是 0.2.3）
+### A. 从 npm 安装（推荐；npm 上的最新版就是 0.2.4）
 
-在 DSH 里：**设置 → 插件 → 添加插件**（箭头菜单里还有「安装第三方插件」，可填包名、Git 仓库或本地目录），输入包名 `dsh-parallel-worktree` 确认即可。插件管理器会在 profile 目录里跑 `pnpm add`，把包写进 `<profile>/package.json` 的 `dependencies`（精确版本，当前 0.2.3），并自动登记到 `dsh.profile.bundles`；装完显示 pnpm 实际装的版本号。
+在 DSH 里：**设置 → 插件 → 添加插件**（箭头菜单里还有「安装第三方插件」，可填包名、Git 仓库或本地目录），输入包名 `dsh-parallel-worktree` 确认即可。插件管理器会在 profile 目录里跑 `pnpm add`，把包写进 `<profile>/package.json` 的 `dependencies`（精确版本，当前 0.2.4），并自动登记到 `dsh.profile.bundles`；装完显示 pnpm 实际装的版本号。
 
 命令行等价操作是两步——`dsh plugin` 只是把参数转发给 profile 目录里的 pnpm，**它不改 bundles**：
 

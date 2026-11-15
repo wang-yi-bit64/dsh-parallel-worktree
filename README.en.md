@@ -56,12 +56,12 @@ The two publishing channels are at different stages, so the version you can get 
 
 | Channel | Latest version | Notes |
 | --- | --- | --- |
-| npm `dsh-parallel-worktree` | **0.2.3** (`latest`, published 2026-11-15) | npm has seen 0.2.0 through 0.2.3 in order (`0.0.0-stage` is an early placeholder prerelease and `latest` does not point at it). **0.2.3 fixes the dock-chip crash that hid the chip on DSH 0.2.2-rc.3**, and `install.mjs` now lands the plugin in the Settings → Plugins list |
-| GitHub Releases | **v0.2.3** (published 2026-11-15) | the [v0.2.3 Release](https://github.com/wang-yi-bit64/dsh-parallel-worktree/releases/tag/v0.2.3) exists, with the auto-generated source tarball/zip; the previous newest was v0.2.2 |
+| npm `dsh-parallel-worktree` | **0.2.4** (`latest`, published 2026-11-15) | npm has seen 0.2.0 through 0.2.4 in order (`0.0.0-stage` is an early placeholder prerelease and `latest` does not point at it). **0.2.4 adds the in-app settings form**: configure the storage location (`storageRoot`) and eight other fields right on the plugin's detail page, saved live |
+| GitHub Releases | **v0.2.4** (published 2026-11-15) | the [v0.2.4 Release](https://github.com/wang-yi-bit64/dsh-parallel-worktree/releases/tag/v0.2.4) exists, with the auto-generated source tarball/zip; the previous newest was v0.2.3 |
 
-`package.json` in the repository reads 0.2.3, matching both the npm and the GitHub release; `publish.yml` is triggered by `v*` tags and publishes to npm, while the GitHub Release is created by a separate `gh release create`.
+`package.json` in the repository reads 0.2.4, matching both the npm and the GitHub release; `publish.yml` is triggered by `v*` tags and publishes to npm, while the GitHub Release is created by a separate `gh release create`.
 
-So: **0.2.3 is available on both channels** — install from npm (route A below), or download the source package from GitHub Release v0.2.3 and use route B's `install.mjs`. To track unpushed commits on `main`, install from the git URL (and still make sure the package name is in `dsh.profile.bundles`):
+So: **0.2.4 is available on both channels** — install from npm (route A below), or download the source package from GitHub Release v0.2.4 and use route B's `install.mjs`. To track unpushed commits on `main`, install from the git URL (and still make sure the package name is in `dsh.profile.bundles`):
 
 ```powershell
 dsh plugin --profile desktop add github:wang-yi-bit64/dsh-parallel-worktree
@@ -71,9 +71,9 @@ dsh plugin --profile desktop add github:wang-yi-bit64/dsh-parallel-worktree
 
 Activation looks at three things for the same package: it declares `dsh.bundle` (this one ships `cordis.patch.yml`), its name is listed in the profile's `dsh.profile.bundles`, and its files resolve from `node_modules`. Pick one of the two routes below, depending on who should own the package files.
 
-### A. Install from npm (recommended; npm's latest is 0.2.3)
+### A. Install from npm (recommended; npm's latest is 0.2.4)
 
-In DSH: **Settings → Plugins → Add plugin** (the arrow menu also offers "install a third-party plugin" — package name, git repository or local directory), type `dsh-parallel-worktree` and confirm. The plugin manager runs `pnpm add` inside the profile, records the package in `<profile>/package.json` under `dependencies` (an exact version — currently 0.2.3) and registers it in `dsh.profile.bundles`; the finished entry shows the version pnpm actually installed.
+In DSH: **Settings → Plugins → Add plugin** (the arrow menu also offers "install a third-party plugin" — package name, git repository or local directory), type `dsh-parallel-worktree` and confirm. The plugin manager runs `pnpm add` inside the profile, records the package in `<profile>/package.json` under `dependencies` (an exact version — currently 0.2.4) and registers it in `dsh.profile.bundles`; the finished entry shows the version pnpm actually installed.
 
 The command-line equivalent takes two steps — `dsh plugin` only forwards its arguments to pnpm inside the profile directory and **does not touch bundles**:
 
