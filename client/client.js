@@ -23,9 +23,12 @@ window.__ModuleLoader__.load({
 		const React = require('react');
 		const h = React.createElement;
 
-		const NS = 'parallel-worktree';
-		const SLOT = 'conversation.composer.dock';
-		const ENTRY_ID = 'parallel-worktree-badge';
+			const NS = 'parallel-worktree';
+			const SLOT = 'conversation.composer.dock';
+			const ENTRY_ID = 'parallel-worktree-badge';
+			/** 插件详情页的配置 slot：keyed，键是 bundle 的包名。 */
+			const CONFIG_SLOT = 'plugins.bundle.config';
+			const CONFIG_KEY = 'dsh-parallel-worktree';
 
 		const zh = {
 			'chip.aria': '\u5e76\u884c worktree\uff1a{name}\uff0c\u70b9\u51fb\u67e5\u770b\u5217\u8868',
@@ -42,6 +45,32 @@ window.__ModuleLoader__.load({
 			'panel.base': '\u57fa\u7ebf {branch}',
 			'chip.idle': '\u5e76\u884c worktree',
 			'panel.notGit': '\u5f53\u524d\u76ee\u5f55\u4e0d\u662f git \u4ed3\u5e93\u7684\u68c0\u51fa\u76ee\u5f55\uff0c\u6216\u8be5\u4ed3\u5e93\u8fd8\u6ca1\u6709\u5e76\u884c worktree\u3002',
+			'config.title': '\u63d2\u4ef6\u8bbe\u7f6e',
+			'config.storageRoot': '\u5b58\u653e\u4f4d\u7f6e',
+			'config.storageRootHint': 'worktree \u5b58\u653e\u6839\u76ee\u5f55\uff1b\u7a7a = \u4ed3\u5e93\u65c1 <repo>.wt/\uff1b\u652f\u6301 {repo} \u5360\u4f4d\u7b26',
+			'config.layout': '\u5e03\u5c40',
+			'config.layoutHint': 'sibling\uff1a\u4ed3\u5e93\u5916\uff08\u9ed8\u8ba4\uff09\uff1binside\uff1a\u4ed3\u5e93\u5185 .worktrees/\uff08\u81ea\u52a8\u5199 .gitignore\uff09',
+			'config.dirName': 'inside \u76ee\u5f55\u540d',
+			'config.dirNameHint': 'inside \u5e03\u5c40\u65f6\u4ed3\u5e93\u5185\u7684\u76ee\u5f55\u540d',
+			'config.siblingSuffix': 'sibling \u540e\u7f00',
+			'config.siblingSuffixHint': 'sibling \u5e03\u5c40\u65f6\u4ed3\u5e93\u540d\u540e\u7684\u540e\u7f00',
+			'config.branchPrefix': '\u5206\u652f\u524d\u7f00',
+			'config.branchPrefixHint': '\u521b\u5efa\u5206\u652f\u65f6\u7684\u524d\u7f00\uff1b\u7a7a = \u76f4\u63a5\u7528 worktree \u540d',
+			'config.copyEnv': '\u590d\u5236\u7684\u73af\u5883\u6587\u4ef6',
+			'config.copyEnvHint': '\u9017\u53f7\u5206\u9694\uff1b\u7a7a = \u4e0d\u590d\u5236\uff08\u5982 .env, .env.local\uff09',
+			'config.linkNodeModules': '\u94fe\u63a5 node_modules',
+			'config.linkNodeModulesHint': '\u521b\u5efa\u65f6\u9ed8\u8ba4\u628a\u4e3b\u4ed3\u5e93 node_modules \u94fe\u63a5\u8fdb\u65b0 worktree',
+			'config.syncMode': '\u540c\u6b65\u7b56\u7565',
+			'config.syncModeHint': '/worktree sync \u7684\u9ed8\u8ba4\u7b56\u7565',
+			'config.baseBranch': '\u57fa\u51c6\u5206\u652f',
+			'config.baseBranchHint': '\u9ed8\u8ba4\u57fa\u51c6\u5206\u652f\uff1b\u7a7a = \u81ea\u52a8\u63a2\u6d4b\u5f53\u524d\u5206\u652f',
+			'config.save': '\u4fdd\u5b58',
+			'config.revert': '\u653e\u5f03\u66f4\u6539',
+			'config.saving': '\u4fdd\u5b58\u4e2d\u2026',
+			'config.saved': '\u5df2\u4fdd\u5b58',
+			'config.refused': '\u4fdd\u5b58\u88ab\u62d2\u7edd\uff08\u68c0\u67e5\u5404\u5b57\u6bb5\u53d6\u503c\u662f\u5426\u7b26\u5408\u7ea6\u675f\uff09',
+			'config.readonly': '\u5f53\u524d profile \u4e0d\u63a5\u53d7\u5199\u5165\uff0c\u914d\u7f6e\u53ea\u8bfb\u3002',
+			'config.loading': '\u914d\u7f6e\u8bfb\u53d6\u4e2d\u2026',
 		};
 		const en = {
 			'chip.aria': 'Parallel worktree: {name}. Click to list worktrees.',
@@ -58,6 +87,32 @@ window.__ModuleLoader__.load({
 			'panel.base': 'base {branch}',
 			'chip.idle': 'Parallel worktrees',
 			'panel.notGit': 'This folder is not inside a Git worktree repository, or it has no parallel worktrees yet.',
+			'config.title': 'Plugin settings',
+			'config.storageRoot': 'Storage location',
+			'config.storageRootHint': 'Worktree storage root; empty = <repo>.wt/ next to the repo; {repo} placeholder supported',
+			'config.layout': 'Layout',
+			'config.layoutHint': 'sibling: outside the repo (default); inside: .worktrees/ inside (auto .gitignore)',
+			'config.dirName': 'Inside directory name',
+			'config.dirNameHint': 'Directory name inside the repo for the inside layout',
+			'config.siblingSuffix': 'Sibling suffix',
+			'config.siblingSuffixHint': 'Suffix appended to the repo name for the sibling layout',
+			'config.branchPrefix': 'Branch prefix',
+			'config.branchPrefixHint': 'Prefix for created branches; empty = use the worktree name directly',
+			'config.copyEnv': 'Copied env files',
+			'config.copyEnvHint': 'Comma separated; empty = copy nothing (e.g. .env, .env.local)',
+			'config.linkNodeModules': 'Link node_modules',
+			'config.linkNodeModulesHint': 'Link the main repo node_modules into new worktrees by default',
+			'config.syncMode': 'Sync mode',
+			'config.syncModeHint': 'Default strategy for /worktree sync',
+			'config.baseBranch': 'Base branch',
+			'config.baseBranchHint': 'Default base branch; empty = auto-detect the current branch',
+			'config.save': 'Save',
+			'config.revert': 'Discard changes',
+			'config.saving': 'Saving…',
+			'config.saved': 'Saved',
+			'config.refused': 'Save refused (check each field against its constraints)',
+			'config.readonly': 'The profile does not accept writes; settings are read-only.',
+			'config.loading': 'Loading settings…',
 		};
 
 		const styles = {
@@ -155,6 +210,57 @@ window.__ModuleLoader__.load({
 			},
 			note: { color: 'var(--dsw-alias-label-caption, #8a8f98)' },
 			error: { color: 'var(--dsw-alias-state-error, #c93b3b)' },
+			configPage: {
+				display: 'flex',
+				flexDirection: 'column',
+				gap: 10,
+				padding: '12px 0',
+				font: 'inherit',
+				fontSize: 12,
+				lineHeight: '18px',
+				color: 'var(--dsw-alias-label-primary, #1f2329)',
+			},
+			configRow: {
+				display: 'flex',
+				alignItems: 'center',
+				gap: 10,
+			},
+			configLabel: {
+				flex: '0 0 130px',
+				textAlign: 'right',
+				color: 'var(--dsw-alias-label-secondary, #6b7280)',
+			},
+			configInput: {
+				flex: 1,
+				maxWidth: 420,
+				font: 'inherit',
+				fontSize: 12,
+				padding: '3px 8px',
+				border: '1px solid var(--dsw-alias-border-l1, #00000014)',
+				borderRadius: 6,
+				background: 'var(--dsw-alias-bg-base, #ffffff)',
+				color: 'inherit',
+			},
+			configHint: {
+				flex: 1,
+				minWidth: 160,
+				color: 'var(--dsw-alias-label-caption, #8a8f98)',
+				overflow: 'hidden',
+				textOverflow: 'ellipsis',
+				whiteSpace: 'nowrap',
+			},
+			configFooter: {
+				display: 'flex',
+				alignItems: 'center',
+				gap: 8,
+				marginTop: 2,
+			},
+			configStatus: {
+				color: 'var(--dsw-alias-label-caption, #8a8f98)',
+			},
+			configNote: {
+				color: 'var(--dsw-alias-label-caption, #8a8f98)',
+			},
 		};
 
 		const noop = () => {};
@@ -245,6 +351,184 @@ window.__ModuleLoader__.load({
 					}
 					return { ok: true, data: data };
 				}, (error) => ({ ok: false, message: String((error && error.message) || error) }));
+		}
+
+		const CONFIG_FIELDS = [
+			{ key: 'storageRoot', kind: 'text' },
+			{ key: 'layout', kind: 'select', options: ['sibling', 'inside'] },
+			{ key: 'dirName', kind: 'text' },
+			{ key: 'siblingSuffix', kind: 'text' },
+			{ key: 'branchPrefix', kind: 'text' },
+			{ key: 'copyEnv', kind: 'list' },
+			{ key: 'linkNodeModules', kind: 'check' },
+			{ key: 'syncMode', kind: 'select', options: ['rebase', 'merge'] },
+			{ key: 'baseBranch', kind: 'text' },
+		];
+
+		/**
+		 * 插件设置页：渲染在「插件 → 并行 Worktree」详情页的 plugins.bundle.config
+		 * slot 里。值与写通道自源：挂载时 ctx.remote.settings.describe() 取本 entry
+		 * （ns = parallel-worktree）的 schema 解析值与 revision；保存走
+		 * settings.mutate（revision 做围栏），写入落到 profile patch 的 config 节，
+		 * 非 volatile 字段会触发插件重挂载。describe/mutate 不可用或命名空间缺失
+		 * （Config schema 未加载）时渲染 null。
+		 */
+		function createConfigPage(ctx, t) {
+			return function ParallelWorktreeConfigPage(props) {
+				const tt = (key, params) => {
+					let value;
+					try {
+						const fn = props && typeof props.t === 'function' ? props.t : t;
+						value = fn(key, params);
+					} catch (error) {
+						value = undefined;
+					}
+					if (typeof value === 'string' && value !== key) return value;
+					const fallback = typeof zh[key] === 'string' ? zh[key] : key;
+					if (!params) return fallback;
+					return fallback.replace(/\{(\w+)\}/g, (match, name) => (name in params ? String(params[name]) : match));
+				};
+
+				const [view, setView] = React.useState(undefined);
+				const [writable, setWritable] = React.useState(true);
+				const [edits, setEdits] = React.useState({});
+				const [status, setStatus] = React.useState('');
+				const alive = React.useRef(true);
+
+				React.useEffect(() => {
+					alive.current = true;
+					let cancelled = false;
+					(async () => {
+						try {
+							const response = await ctx.remote.settings.describe();
+							if (cancelled || !alive.current) return;
+							if (response && response.ok && response.value) {
+								setWritable(response.value.writable !== false);
+								const row = (response.value.namespaces || []).find((item) => item.ns === NS);
+								if (row) setView(row);
+							}
+						} catch (error) {
+							/* settings 通道缺席：按契约渲染 null */
+						}
+					})();
+					return () => { cancelled = true; alive.current = false; };
+				}, []);
+
+				if (view === undefined) return null;
+				const value = view.value && typeof view.value === 'object' ? view.value : {};
+
+				function display(key) {
+					if (edits[key] !== undefined) return edits[key];
+					const current = value[key];
+					if (key === 'copyEnv') return Array.isArray(current) ? current.join(', ') : '';
+					if (key === 'linkNodeModules') return current === true;
+					return current === undefined || current === null ? '' : String(current);
+				}
+
+				function edit(key, raw) {
+					setEdits((previous) => {
+						const next = { ...previous };
+						next[key] = key === 'linkNodeModules' ? raw === true
+							: key === 'copyEnv'
+								? String(raw).split(/[,\s]+/).map((item) => item.trim()).filter((item) => item !== '')
+								: String(raw);
+						return next;
+					});
+					setStatus('');
+				}
+
+				async function save() {
+					const keys = Object.keys(edits);
+					if (keys.length === 0) return;
+					const ops = keys.map((key) => ({ op: 'set', path: [key], value: edits[key] }));
+					setStatus(tt('config.saving'));
+					let accepted = false;
+					try {
+						const response = await ctx.remote.settings.mutate(NS, ops, view.revision);
+						accepted = Boolean(response && response.ok);
+						if (accepted && response.value && typeof response.value === 'object') setView(response.value);
+					} catch (error) {
+						accepted = false;
+					}
+					if (!alive.current) return;
+					setStatus(accepted ? tt('config.saved') : tt('config.refused'));
+					if (accepted) setEdits({});
+				}
+
+				const dirty = Object.keys(edits).length > 0;
+				const disabled = writable === false;
+
+				return h(
+					'div',
+					{ style: styles.configPage, 'data-dsh-parallel-worktree-config': '' },
+					h('div', { style: styles.title }, tt('config.title')),
+					CONFIG_FIELDS.map((field) => h(
+						'div',
+						{ key: field.key, style: styles.configRow },
+						h('label', { style: styles.configLabel, htmlFor: 'dsh-pwt-' + field.key, title: tt('config.' + field.key + 'Hint') }, tt('config.' + field.key)),
+						field.kind === 'select'
+							? h(
+								'select',
+								{
+									id: 'dsh-pwt-' + field.key,
+									style: styles.configInput,
+									value: display(field.key),
+									disabled,
+									onChange: (event) => edit(field.key, event.target.value),
+								},
+								field.options.map((option) => h('option', { key: option, value: option }, option)),
+							)
+							: field.kind === 'check'
+								? h('input', {
+									id: 'dsh-pwt-' + field.key,
+									type: 'checkbox',
+									checked: display(field.key) === true,
+									disabled,
+									onChange: (event) => edit(field.key, event.target.checked),
+								})
+								: h('input', {
+									id: 'dsh-pwt-' + field.key,
+									type: 'text',
+									style: styles.configInput,
+									value: display(field.key),
+									disabled,
+									title: tt('config.' + field.key + 'Hint'),
+									onChange: (event) => edit(field.key, event.target.value),
+								}),
+						h('span', { style: styles.configHint, title: tt('config.' + field.key + 'Hint') }, tt('config.' + field.key + 'Hint')),
+					)),
+					h(
+						'div',
+						{ style: styles.configFooter },
+						disabled
+							? h('span', { style: styles.configNote }, tt('config.readonly'))
+							: [
+								h(
+									'button',
+									{
+										key: 'save',
+										type: 'button',
+										style: styles.button,
+										disabled: !dirty || status === tt('config.saving'),
+										onClick: () => { void save(); },
+									},
+									status === tt('config.saving') ? tt('config.saving') : tt('config.save'),
+								),
+								dirty ? h(
+									'button',
+									{
+										key: 'revert',
+										type: 'button',
+										style: styles.button,
+										onClick: () => { setEdits({}); setStatus(''); },
+									},
+									tt('config.revert'),
+								) : null,
+							],
+						status !== '' && status !== tt('config.saving') ? h('span', { style: styles.configStatus, role: 'status' }, status) : null,
+					),
+				);
+			};
 		}
 
 		/** Badge + popover component, closed over the plugin context and locale t. */
@@ -478,14 +762,22 @@ window.__ModuleLoader__.load({
 
 			const Badge = createBadge(ctx, t);
 			ctx.slots.inject(SLOT, () => ctx.slots.register({ name: SLOT, id: ENTRY_ID, order: 5, locale: NS }, Badge));
+
+			// 插件设置页：注册到插件管理器的 keyed 配置 slot（键 = bundle 包名），
+			// 详情页在描述与组件行之间渲染本组件。
+			const ConfigPage = createConfigPage(ctx, t);
+			ctx.slots.inject(CONFIG_SLOT, () => ctx.slots.register(
+				{ name: CONFIG_SLOT, key: CONFIG_KEY, id: ENTRY_ID + '-config', locale: NS },
+				ConfigPage,
+			));
 		}
 
 		return {
 			name: 'parallel-worktree-client',
-			// `remote` (not just `remote.commands`): readCommands reads the parent service to
-			// confirm the channel exists, and the context proxy throws on any property
-			// that is not declared here.
-			inject: ['slots', 'locale', 'sessions', 'remote', 'remote.commands'],
+			// `remote`（不只是 `remote.commands`）：readCommands 读父服务确认通道存在；
+			// `remote.settings`：配置页的 describe/mutate 走它。上下文代理对未声明的
+			// 属性读取一律抛错，所以逐级声明。
+			inject: ['slots', 'locale', 'sessions', 'remote', 'remote.commands', 'remote.settings'],
 			apply: apply,
 		};
 	},

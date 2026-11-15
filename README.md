@@ -339,18 +339,36 @@ Agent：（切换会话工作目录后）现在在这个目录里，状态：干
 
 ## 配置
 
-配置来自 `cordis.patch.yml` 里插件行的 `config`（或在 profile patch 里按 id 覆盖）：
+**设置界面（推荐）**：插件装好并重启后，打开 **插件 → 并行 Worktree 详情页**，描述下方就是「插件设置」表单——9 个字段带说明，改完点「保存」即时生效（写入 profile patch 的 config 节，下一次 `create` / `list` / `sync` 立即用新值，已存在的 worktree 不受影响）。DSH 只暴露热更新字段，所以 `enabled` 开关走卡片上的总开关、不走表单。
+
+可配置项一览（`storageRoot` 是新增的，其余与既有配置一致）：
+
+| 字段 | 默认 | 说明 |
+| --- | --- | --- |
+| `storageRoot` | （空） | **worktree 存放根目录**：worktree 文件放哪。空 = 仓库旁 `<repo>.wt/`；支持 `{repo}` 占位符（展开成仓库名）；相对路径按仓库父目录解析；绝对路径原样使用。`inside` 布局下忽略 |
+| `layout` | `sibling` | `sibling`（仓库外 `<repo>.wt/`）\| `inside`（`<repo>/.worktrees/`，自动写 .gitignore） |
+| `dirName` | `.worktrees` | `layout=inside` 时的目录名 |
+| `siblingSuffix` | `.wt` | `layout=sibling` 时兄弟目录后缀 |
+| `branchPrefix` | `wt/` | 新建分支前缀；空 = 直接用 worktree 名 |
+| `baseBranch` | （空） | 未显式 `--base` 时的基线；空 = 探测主仓库当前分支 |
+| `syncMode` | `rebase` | `rebase` \| `merge` |
+| `copyEnv` | `[".env", ".env.local"]` | 创建时从主仓库复制的环境文件；空数组 = 不复制 |
+| `linkNodeModules` | `false` | 创建时默认把主仓库 `node_modules` 链接进新 worktree（Windows 用 junction） |
+| `enabled` | `true` | 总开关（卡片开关 / patch）；`false` 时插件整体跳过 |
+
+等价的手工写法——profile 的 `cordis.patch.yml`（设置界面保存的就是这里）或插件行的 `config`：
 
 ```yaml
 - id: parallel-worktree
   name: dsh-parallel-worktree
   config:
-    layout: sibling          # sibling（仓库外 <repo>.wt/）| inside（<repo>/.worktrees/）
-    dirName: .worktrees      # layout=inside 时的目录名
-    siblingSuffix: .wt       # layout=sibling 时兄弟目录后缀
-    branchPrefix: "wt/"      # 新建分支前缀
-    baseBranch: main         # 未显式 --base 时的基线；不写则探测主仓库当前分支
-    syncMode: rebase         # rebase | merge
+    storageRoot: "D:/wt/{repo}"   # 新增：worktree 存放根目录，支持 {repo} 占位符
+    layout: sibling               # sibling（仓库外 <repo>.wt/）| inside（<repo>/.worktrees/）
+    dirName: .worktrees           # layout=inside 时的目录名
+    siblingSuffix: .wt            # layout=sibling 时兄弟目录后缀
+    branchPrefix: "wt/"           # 新建分支前缀
+    baseBranch: main              # 未显式 --base 时的基线；不写则探测主仓库当前分支
+    syncMode: rebase              # rebase | merge
     copyEnv: [".env", ".env.local"]
     linkNodeModules: false
     enabled: true

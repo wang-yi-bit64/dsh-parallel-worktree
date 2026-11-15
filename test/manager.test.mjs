@@ -225,3 +225,45 @@ test('非 git 目录给出 NOT_GIT_REPO', async () => {
     await assert.rejects(manager.list({ cwd: base }), (error) => codeOf(error) === 'NOT_GIT_REPO')
   })
 })
+
+test('expandStorageRoot：空模板回退 sibling 约定，{repo} 占位符与相对/绝对路径解析正确', async () => {
+  const { expandStorageRoot } = await import('../lib/manager.js')
+  const repoRoot = String.raw`D:\repos\my-app`
+  const suffix = '.wt'
+
+  // 空模板 → sibling 约定
+  assert.equal(expandStorageRoot('', repoRoot, suffix), String.raw`D:\repos\my-app.wt`)
+  assert.equal(expandStorageRoot('   ', repoRoot, suffix), String.raw`D:\repos\my-app.wt`)
+  assert.equal(expandStorageRoot(undefined, repoRoot, suffix), String.raw`D:\repos\my-app.wt`)
+
+  // {repo} 占位符展开成仓库名
+  assert.equal(expandStorageRoot(String.raw`D:\wt\{repo}`, repoRoot, suffix), String.raw`D:\wt\my-app`)
+  // 绝对路径模板原样保留（下游 path.join 会统一分隔符）
+  assert.equal(expandStorageRoot('C:/worktrees/{repo}/store', repoRoot, suffix), 'C:/worktrees/my-app/store')
+
+  // 相对路径按仓库父目录解析
+  assert.equal(expandStorageRoot('worktrees', repoRoot, suffix), String.raw`D:\repos\worktrees`)
+  assert.equal(expandStorageRoot(String.raw`..\shared-wt\{repo}`, repoRoot, suffix), String.raw`D:\shared-wt\my-app`)
+
+  // 绝对路径原样使用
+  assert.equal(expandStorageRoot(String.raw`E:\flat`, repoRoot, suffix), String.raw`E:\flat`)
+})
+
+test('settings：volatile 活配置实时生效（改存放位置后下一次创建立即使用）', async () => {
+  // 模拟 DSH 设置写入的 volatile 引用协议：{ get() } 返回当前值
+  const state = { storageRoot: '' }
+  const ref = (key) => ({ get: () => state[key] })
+  await withRepo({ manager: { settings: { storageRoot: ref('storageRoot') } } }, async ({ repo, base, manager }) => {
+    // 空模板 → sibling 约定 <repo>.wt/
+    const first = await manager.create({ name: 'a', cwd: repo })
+    assert.ok(first.worktree.path.includes('portal.wt'))
+
+    // 用户在设置表单里改了存放位置 → 下一次创建立即使用新值（无需重挂载）
+    state.storageRoot = base + '/custom-wt/{repo}'
+    const second = await manager.create({ name: 'b', cwd: repo })
+    assert.equal(second.worktree.path, path.join(base, 'custom-wt', 'portal', 'b'))
+
+    // config() 快照反映活值
+    assert.equal(manager.config().storageRoot, base + '/custom-wt/{repo}')
+  })
+})

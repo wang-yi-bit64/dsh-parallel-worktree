@@ -339,18 +339,36 @@ With Agent Teams: give each teammate its own `/worktree create` directory and le
 
 ## Configuration
 
-Configuration comes from the plugin row's `config` in `cordis.patch.yml` (or an id-targeted override in the profile patch):
+**Settings UI (recommended)**: after installing and restarting, open the **Plugins → Parallel Worktree detail page** — the "Plugin settings" form sits right under the description: nine documented fields, and Save applies immediately (writes land in the profile patch's `config` section; the next `create` / `list` / `sync` uses the new values, existing worktrees are untouched). DSH only exposes hot-reloadable fields in forms, so the `enabled` switch lives on the card toggle, not the form.
+
+Configurable fields (`storageRoot` is new; the rest match the existing configuration):
+
+| Field | Default | Meaning |
+| --- | --- | --- |
+| `storageRoot` | (empty) | **Where worktree files live**: empty = `<repo>.wt/` next to the repo; `{repo}` placeholder expands to the repo name; relative paths resolve against the repo's parent; absolute paths are used as-is. Ignored for the `inside` layout |
+| `layout` | `sibling` | `sibling` (outside, `<repo>.wt/`) \| `inside` (`<repo>/.worktrees/`, auto .gitignore) |
+| `dirName` | `.worktrees` | Directory name when `layout=inside` |
+| `siblingSuffix` | `.wt` | Suffix of the sibling directory when `layout=sibling` |
+| `branchPrefix` | `wt/` | Prefix for created branches; empty = use the worktree name directly |
+| `baseBranch` | (empty) | Default base when `--base` is omitted; empty = probe the main checkout |
+| `syncMode` | `rebase` | `rebase` \| `merge` |
+| `copyEnv` | `[".env", ".env.local"]` | Env files copied from the main checkout on create; empty array = copy nothing |
+| `linkNodeModules` | `false` | Link the main repo `node_modules` into new worktrees by default (junction on Windows) |
+| `enabled` | `true` | Master switch (card toggle / patch); `false` skips the plugin entirely |
+
+The equivalent manual form — the profile's `cordis.patch.yml` (where the settings UI saves) or the plugin row's `config`:
 
 ```yaml
 - id: parallel-worktree
   name: dsh-parallel-worktree
   config:
-    layout: sibling          # sibling (<repo>.wt/ next to the repo) | inside (<repo>/.worktrees/)
-    dirName: .worktrees      # directory name when layout=inside
-    siblingSuffix: .wt       # suffix of the sibling directory when layout=sibling
-    branchPrefix: "wt/"      # prefix for created branches
-    baseBranch: main         # default base when --base is omitted; unset = probe the main checkout
-    syncMode: rebase         # rebase | merge
+    storageRoot: "D:/wt/{repo}"   # new: worktree storage root, {repo} placeholder supported
+    layout: sibling               # sibling (<repo>.wt/ next to the repo) | inside (<repo>/.worktrees/)
+    dirName: .worktrees           # directory name when layout=inside
+    siblingSuffix: .wt            # suffix of the sibling directory when layout=sibling
+    branchPrefix: "wt/"           # prefix for created branches
+    baseBranch: main              # default base when --base is omitted; unset = probe the main checkout
+    syncMode: rebase              # rebase | merge
     copyEnv: [".env", ".env.local"]
     linkNodeModules: false
     enabled: true

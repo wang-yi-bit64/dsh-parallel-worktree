@@ -31,6 +31,8 @@ import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const PACKAGE_NAME = 'dsh-parallel-worktree'
+/** Config schema 依赖的运行库：从仓库 node_modules 一并复制，使插件自带 Config 生效。 */
+const RUNTIME_DEPS = ['@deepseek-ai/schemastery', '@deepseek-ai/cosmokit']
 const SKIP_DIRS = new Set(['test', 'node_modules', '.git'])
 const SKIP_FILES = new Set(['install.mjs', 'uninstall.mjs', 'test-run.log', 'test-run.pid', 'package-lock.json'])
 
@@ -247,6 +249,16 @@ async function main() {
       },
     })
   }
+  /** 把仓库 node_modules 里的运行库复制到目标 node_modules（Config schema 依赖）。 */
+  const copyRuntimeDeps = async (destNodeModules) => {
+    for (const dep of RUNTIME_DEPS) {
+      const source = path.join(HERE, 'node_modules', dep)
+      if (!(await exists(source))) continue
+      const dest = path.join(destNodeModules, dep)
+      await fs.mkdir(path.dirname(dest), { recursive: true })
+      await fs.cp(source, dest, { recursive: true, force: true })
+    }
+  }
   try {
     if (manifestChanged) {
       await fs.copyFile(profilePackagePath, backup)
@@ -256,11 +268,14 @@ async function main() {
     if (options.deps) {
       log(options, '复制插件文件 → ' + primaryTarget)
       await copyTo(primaryTarget)
+      await copyRuntimeDeps(path.dirname(primaryTarget))
       log(options, '复制兜底副本 → ' + fallbackTarget)
       await copyTo(fallbackTarget)
+      await copyRuntimeDeps(path.dirname(fallbackTarget))
     } else {
       log(options, '复制插件文件 → ' + fallbackTarget)
       await copyTo(fallbackTarget)
+      await copyRuntimeDeps(path.dirname(fallbackTarget))
       // 旧行为不留 profile 副本：pnpm 会把它当多余目录，留着反而混淆排查。
       await fs.rm(primaryTarget, { recursive: true, force: true })
     }
